@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=Inter:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#4F9DFF",
+                        "on-primary": "#FFFFFF",
+                        surface: "#121212",
+                        "on-surface": "#E2E2E2",
+                        "on-surface-variant": "#A0A0A0",
+                        "surface-container": "#1E1E1E",
+                        "surface-container-high": "#2A2A2A",
+                        "surface-container-highest": "#333333",
+                        outline: "#3F3F3F",
+                        "outline-variant": "#2F2F2F",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Space Grotesk", "sans-serif"],
+                        display: ["Space Grotesk", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                        label: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: transparent;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+        .mac-window {
+            width: 613px; /* 460pt converted approx */
+            height: 453px; /* 340pt converted approx */
+            background: rgba(18, 18, 18, 0.75);
+            backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #4F9DFF;
+        }
+        .toggle-checkbox:checked + .toggle-label .toggle-dot {
+            transform: translateX(100%);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-neutral-900/50">
+<!-- macOS Settings Window Container -->
+<div class="mac-window rounded-xl flex overflow-hidden relative">
+<!-- TOP APP BAR (Overlay Actions) -->
+<!-- Logic: top-0, right-0, absolute to float over content as per JSON style_shell_layout -->
+<header class="flex items-center justify-between px-4 absolute top-0 right-0 w-[calc(100%-12rem)] h-10 z-20">
+<span class="font-headline text-sm font-bold text-primary">OmniBar Settings</span>
+<div class="flex space-x-2">
+<button class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-opacity">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">close</span>
+</button>
+</div>
+</header>
+<!-- SIDE NAV BAR (The Sidebar) -->
+<aside class="flex flex-col py-4 px-3 space-y-2 h-full w-48 shrink-0 border-r border-outline-variant/20 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl z-10">
+<!-- Brand Header -->
+<div class="flex items-center space-x-3 px-2 mb-6">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">speed</span>
+</div>
+<div>
+<h1 class="text-lg font-headline font-bold text-on-surface dark:text-on-surface leading-tight">OmniBar</h1>
+<p class="text-[10px] opacity-50 font-medium tracking-tight uppercase">Gateway v1.0</p>
+</div>
+</div>
+<!-- Nav Items -->
+<nav class="space-y-1">
+<button class="nav-item w-full flex items-center space-x-3 px-3 py-2 bg-primary/10 text-primary dark:bg-primary/20 rounded-lg font-semibold transition-colors active:scale-95 duration-150 ease-in-out" id="tab-general" onclick="switchTab('general')">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body text-label-sm">通用</span>
+</button>
+<button class="nav-item w-full flex items-center space-x-3 px-3 py-2 text-on-surface-variant/70 hover:text-on-surface dark:text-on-surface-variant/70 hover:bg-surface-container-highest dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150 ease-in-out" id="tab-connection" onclick="switchTab('connection')">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-body text-label-sm">连接</span>
+</button>
+<button class="nav-item w-full flex items-center space-x-3 px-3 py-2 text-on-surface-variant/70 hover:text-on-surface dark:text-on-surface-variant/70 hover:bg-surface-container-highest dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150 ease-in-out" id="tab-about" onclick="switchTab('about')">
+<span class="material-symbols-outlined">info</span>
+<span class="font-body text-label-sm">关于</span>
+</button>
+</nav>
+<div class="mt-auto px-2 opacity-30 text-[10px] font-mono">
+                DEV_MODE::ACTIVE
+            </div>
+</aside>
+<!-- CONTENT AREA (Canvas) -->
+<main class="flex-1 h-full pt-12 px-8 pb-8 overflow-y-auto custom-scrollbar relative">
+<!-- General Tab Content -->
+<section class="tab-content space-y-8" id="content-general">
+<div>
+<h3 class="text-xs font-bold text-primary uppercase tracking-widest mb-4">启动</h3>
+<div class="bg-surface-container-high/50 rounded-lg border border-outline-variant/30 p-4 flex items-center justify-between">
+<span class="text-sm text-on-surface">开机自启动 Omniroute + OmniBar</span>
+<div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer outline-none transition-transform duration-200 ease-in-out translate-x-0" id="toggle-launch" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-neutral-700 cursor-pointer" for="toggle-launch"></label>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xs font-bold text-primary uppercase tracking-widest mb-4">显示</h3>
+<div class="bg-surface-container-high/50 rounded-lg border border-outline-variant/30 divide-y divide-outline-variant/30">
+<div class="p-4 flex items-center justify-between">
+<span class="text-sm text-on-surface">在菜单栏显示 Token / 费用</span>
+<div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer outline-none transition-transform duration-200 ease-in-out translate-x-0" id="toggle-display" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-neutral-700 cursor-pointer" for="toggle-display"></label>
+</div>
+</div>
+<div class="p-4 flex items-center justify-between">
+<span class="text-sm text-on-surface">显示费用 (否则显示 Token)</span>
+<div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer outline-none transition-transform duration-200 ease-in-out translate-x-0" id="toggle-cost" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-neutral-700 cursor-pointer" for="toggle-cost"></label>
+</div>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xs font-bold text-primary uppercase tracking-widest mb-4">网络</h3>
+<div class="bg-surface-container-high/50 rounded-lg border border-outline-variant/30 p-4 flex items-center justify-between">
+<span class="text-sm text-on-surface">轮询间隔</span>
+<select class="bg-surface-container-highest text-on-surface text-sm rounded-md border-none ring-1 ring-outline-variant/50 focus:ring-primary px-3 py-1 outline-none appearance-none cursor-pointer">
+<option>10s</option>
+<option selected="">15s</option>
+<option>30s</option>
+<option>60s</option>
+</select>
+</div>
+</div>
+</section>
+<!-- Connection Tab Content -->
+<section class="tab-content hidden space-y-6" id="content-connection">
+<div class="space-y-4">
+<div class="grid grid-cols-4 items-center gap-4">
+<label class="text-sm text-on-surface-variant text-right">端口</label>
+<input class="col-span-3 bg-surface-container-high/50 border border-outline-variant/30 rounded-md px-3 py-2 text-sm text-on-surface font-mono focus:ring-1 focus:ring-primary focus:outline-none transition-all" type="text" value="20128"/>
+</div>
+<div class="grid grid-cols-4 items-center gap-4">
+<label class="text-sm text-on-surface-variant text-right">二进制路径</label>
+<input class="col-span-3 bg-surface-container-high/50 border border-outline-variant/30 rounded-md px-3 py-2 text-sm text-on-surface font-mono focus:ring-1 focus:ring-primary focus:outline-none transition-all" type="text" value="/usr/local/bin/omniroute"/>
+</div>
+<div class="grid grid-cols-4 items-center gap-4">
+<label class="text-sm text-on-surface-variant text-right">API Key</label>
+<div class="col-span-3 relative">
+<input class="w-full bg-surface-container-high/50 border border-outline-variant/30 rounded-md px-3 py-2 pr-10 text-sm text-on-surface font-mono focus:ring-1 focus:ring-primary focus:outline-none transition-all" type="password" value="sk-omni-8821-4k2l-9p0x"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-4 items-center gap-4">
+<label class="text-sm text-on-surface-variant text-right">Dashboard</label>
+<input class="col-span-3 bg-surface-container-high/50 border border-outline-variant/30 rounded-md px-3 py-2 text-sm text-on-surface font-mono focus:ring-1 focus:ring-primary focus:outline-none transition-all" type="text" value="http://localhost:20128/dashboard"/>
+</div>
+</div>
+<div class="mt-8 p-4 bg-primary/5 border border-primary/20 rounded-lg flex items-start space-x-3">
+<span class="material-symbols-outlined text-primary text-[20px]">info</span>
+<p class="text-[12px] text-on-surface-variant leading-relaxed">
+                        这些设置直接控制本地网关连接。修改后可能需要重启 OmniBar 以应用更改。
+                    </p>
+</div>
+</section>
+<!-- About Tab Content -->
+<section class="tab-content hidden flex flex-col items-center justify-center h-full text-center space-y-6" id="content-about">
+<div class="relative">
+<div class="w-24 h-24 bg-gradient-to-br from-primary to-[#2D5F99] rounded-3xl flex items-center justify-center shadow-2xl shadow-primary/40 relative z-10">
+<span class="material-symbols-outlined text-[48px] text-white" style="font-variation-settings: 'FILL' 1;">speed</span>
+</div>
+<div class="absolute -inset-4 bg-primary/20 blur-3xl rounded-full"></div>
+</div>
+<div>
+<h2 class="text-2xl font-headline font-bold text-on-surface">OmniBar</h2>
+<p class="text-sm text-on-surface-variant mt-1">Omniroute macOS Menu Bar Manager</p>
+</div>
+<div class="px-4 py-1 bg-surface-container-highest rounded-full border border-outline-variant/50">
+<span class="text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">Version 1.0 (1)</span>
+</div>
+<div class="flex flex-col space-y-4 w-full max-w-xs pt-4">
+<a class="group flex items-center justify-between px-5 py-3 bg-surface-container-high/50 hover:bg-surface-container-highest border border-outline-variant/30 rounded-xl transition-all active:scale-[0.98]" href="#">
+<div class="flex items-center space-x-3">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-sm font-medium text-on-surface">GitHub 仓库</span>
+</div>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+<p class="text-[10px] text-on-surface-variant/40 mt-auto">
+                    © 2024 OmniRoute Technologies. All rights reserved.
+                </p>
+</section>
+</main>
+</div>
+<script>
+        function switchTab(tabName) {
+            // Update Navigation UI
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('bg-primary/10', 'text-primary', 'dark:bg-primary/20', 'font-semibold');
+                item.classList.add('text-on-surface-variant/70', 'hover:text-on-surface', 'dark:text-on-surface-variant/70');
+            });
+
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            activeTab.classList.add('bg-primary/10', 'text-primary', 'dark:bg-primary/20', 'font-semibold');
+            activeTab.classList.remove('text-on-surface-variant/70', 'hover:text-on-surface', 'dark:text-on-surface-variant/70');
+
+            // Update Content UI
+            const contentSections = document.querySelectorAll('.tab-content');
+            contentSections.forEach(section => section.classList.add('hidden'));
+            
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        }
+
+        // Simple Toggle animation sync for custom checkboxes if needed
+        document.querySelectorAll('.toggle-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const dot = e.target.parentElement.querySelector('.toggle-dot');
+                if(e.target.checked) {
+                    // Logic handled by CSS + Class
+                }
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,30 @@
+# Xcode / Swift
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+xcuserdata/
+DerivedData/
+build/
+*.app/
+*.dSYM.zip
+*.dSYM
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
+.fseventsd/
+
+# Generated images (optional artifacts)
+generated-images/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+
+# OS / temp
+*.log
+.TemporaryItems/

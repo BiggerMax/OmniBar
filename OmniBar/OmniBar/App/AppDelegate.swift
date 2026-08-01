@@ -1,0 +1,38 @@
+//
+//  AppDelegate.swift
+//  OmniBar
+//
+//  在 AppKit 层管理 NSStatusItem 生命周期
+//
+
+import AppKit
+import SwiftUI
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let settings = AppSettings.shared
+    private(set) var omnirouteService: OmnirouteService!
+    private var statusItemManager: StatusItemManager?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // 启动时隐藏 Dock 图标
+        NSApp.setActivationPolicy(.accessory)
+
+        // 若用户此前未配置 API Key，则填充本地网关默认 Key
+        if settings.omnirouteAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            settings.omnirouteAPIKey = "sk-c4b1296a521c8ac2-243703-59cc5103"
+        }
+
+        let service = OmnirouteService(settings: settings)
+        self.omnirouteService = service
+
+        let manager = StatusItemManager(service: service, settings: settings)
+        self.statusItemManager = manager
+
+        omnirouteService.startPolling()
+        Task { await omnirouteService.refreshStatus() }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        omnirouteService.stopPolling()
+    }
+}

@@ -1,0 +1,401 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+/* Begin PBXBuildFile section */
+		AA000001 /* OmniBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* OmniBarApp.swift */; };
+		AA000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* AppDelegate.swift */; };
+		AA000003 /* OmnirouteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100003 /* OmnirouteService.swift */; };
+		AA000004 /* OmnirouteAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100004 /* OmnirouteAPIClient.swift */; };
+		AA000005 /* StatusItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100005 /* StatusItemManager.swift */; };
+		AA000006 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100006 /* AppSettings.swift */; };
+		AA000007 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100007 /* Provider.swift */; };
+		AA000008 /* Combo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100008 /* Combo.swift */; };
+		AA000009 /* UsageStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100009 /* UsageStats.swift */; };
+		AA000010 /* ServiceStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100010 /* ServiceStatus.swift */; };
+		AA000011 /* PopoverPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* PopoverPanel.swift */; };
+		AA000012 /* StatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* StatusCard.swift */; };
+		AA000025 /* ActionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100025 /* ActionButton.swift */; };
+		AA000013 /* ProviderList.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100013 /* ProviderList.swift */; };
+		AA000014 /* ComboSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* ComboSelector.swift */; };
+		AA000015 /* UsageSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* UsageSummary.swift */; };
+		AA000022 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100024 /* DesignTokens.swift */; };
+		AA000027 /* DetailCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100027 /* DetailCards.swift */; };
+		AA000016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016 /* SettingsView.swift */; };
+		AA000017 /* GeneralSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017 /* GeneralSettings.swift */; };
+		AA000018 /* ConnectionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100018 /* ConnectionSettings.swift */; };
+		AA000019 /* AboutSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100019 /* AboutSettings.swift */; };
+		AA000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA100020 /* Assets.xcassets */; };
+		AA000021 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100021 /* LaunchAtLogin.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA100000 /* OmniBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OmniBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA100001 /* OmniBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmniBarApp.swift; sourceTree = "<group>"; };
+		AA100002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AA100003 /* OmnirouteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmnirouteService.swift; sourceTree = "<group>"; };
+		AA100004 /* OmnirouteAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmnirouteAPIClient.swift; sourceTree = "<group>"; };
+		AA100005 /* StatusItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemManager.swift; sourceTree = "<group>"; };
+		AA100006 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		AA100007 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
+		AA100008 /* Combo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Combo.swift; sourceTree = "<group>"; };
+		AA100009 /* UsageStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStats.swift; sourceTree = "<group>"; };
+		AA100010 /* ServiceStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceStatus.swift; sourceTree = "<group>"; };
+		AA100011 /* PopoverPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverPanel.swift; sourceTree = "<group>"; };
+		AA100012 /* StatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCard.swift; sourceTree = "<group>"; };
+		AA100025 /* ActionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButton.swift; sourceTree = "<group>"; };
+		AA100013 /* ProviderList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderList.swift; sourceTree = "<group>"; };
+		AA100014 /* ComboSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboSelector.swift; sourceTree = "<group>"; };
+		AA100015 /* UsageSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSummary.swift; sourceTree = "<group>"; };
+		AA100016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA100017 /* GeneralSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettings.swift; sourceTree = "<group>"; };
+		AA100018 /* ConnectionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSettings.swift; sourceTree = "<group>"; };
+		AA100019 /* AboutSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettings.swift; sourceTree = "<group>"; };
+		AA100020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA100021 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
+		AA100022 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA100023 /* OmniBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OmniBar.entitlements; sourceTree = "<group>"; };
+		AA100024 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		AA100027 /* DetailCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailCards.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		AA200000 /* ... */ = {
+			isa = PBXGroup;
+			children = (
+				AA200001 /* OmniBar */,
+				AA200002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA200002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA100000 /* OmniBar.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA200001 /* OmniBar */ = {
+			isa = PBXGroup;
+			children = (
+				AA200003 /* App */,
+				AA200004 /* Models */,
+				AA200005 /* Services */,
+				AA200006 /* Views */,
+				AA200007 /* Resources */,
+			);
+			path = OmniBar;
+			sourceTree = "<group>";
+		};
+		AA200003 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AA100001 /* OmniBarApp.swift */,
+				AA100002 /* AppDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA200004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA100007 /* Provider.swift */,
+				AA100008 /* Combo.swift */,
+				AA100009 /* UsageStats.swift */,
+				AA100010 /* ServiceStatus.swift */,
+				AA100006 /* AppSettings.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AA200005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AA100003 /* OmnirouteService.swift */,
+				AA100004 /* OmnirouteAPIClient.swift */,
+				AA100005 /* StatusItemManager.swift */,
+				AA100021 /* LaunchAtLogin.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AA200006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AA100011 /* PopoverPanel.swift */,
+				AA200008 /* Components */,
+				AA200009 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AA200008 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				AA100024 /* DesignTokens.swift */,
+				AA100025 /* ActionButton.swift */,
+				AA100012 /* StatusCard.swift */,
+				AA100013 /* ProviderList.swift */,
+				AA100014 /* ComboSelector.swift */,
+				AA100015 /* UsageSummary.swift */,
+				AA100027 /* DetailCards.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		AA200009 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				AA100016 /* SettingsView.swift */,
+				AA100017 /* GeneralSettings.swift */,
+				AA100018 /* ConnectionSettings.swift */,
+				AA100019 /* AboutSettings.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		AA200007 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AA100020 /* Assets.xcassets */,
+				AA100022 /* Info.plist */,
+				AA100023 /* OmniBar.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA300000 /* OmniBar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA500002 /* Build configuration list for PBXNativeTarget OmniBar */;
+			buildPhases = (
+				AA400001 /* Sources */,
+				AA400002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OmniBar;
+			productName = OmniBar;
+			productReference = AA100000 /* OmniBar.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA600000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				BuildIndependentTargetsInParallel = YES;
+			};
+			buildConfigurationList = AA500001 /* Build configuration list for PBXProject OmniBar */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "en";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA200000 /* ... */;
+			productRefGroup = AA200002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA300000 /* OmniBar */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA400002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000020 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA400001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001 /* OmniBarApp.swift in Sources */,
+				AA000002 /* AppDelegate.swift in Sources */,
+				AA000003 /* OmnirouteService.swift in Sources */,
+				AA000004 /* OmnirouteAPIClient.swift in Sources */,
+				AA000005 /* StatusItemManager.swift in Sources */,
+				AA000006 /* AppSettings.swift in Sources */,
+				AA000007 /* Provider.swift in Sources */,
+				AA000008 /* Combo.swift in Sources */,
+				AA000009 /* UsageStats.swift in Sources */,
+				AA000010 /* ServiceStatus.swift in Sources */,
+				AA000011 /* PopoverPanel.swift in Sources */,
+				AA000012 /* StatusCard.swift in Sources */,
+				AA000025 /* ActionButton.swift in Sources */,
+				AA000013 /* ProviderList.swift in Sources */,
+				AA000014 /* ComboSelector.swift in Sources */,
+				AA000015 /* UsageSummary.swift in Sources */,
+				AA000022 /* DesignTokens.swift in Sources */,
+				AA000027 /* DetailCards.swift in Sources */,
+				AA000016 /* SettingsView.swift in Sources */,
+				AA000017 /* GeneralSettings.swift in Sources */,
+				AA000018 /* ConnectionSettings.swift in Sources */,
+				AA000019 /* AboutSettings.swift in Sources */,
+				AA000021 /* LaunchAtLogin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA500010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_OBJC_CPP = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA500011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		AA500020 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OmniBar/Resources/OmniBar.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OmniBar/Resources/Info.plist;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnibar.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA500021 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OmniBar/Resources/OmniBar.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OmniBar/Resources/Info.plist;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnibar.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA500001 /* Build configuration list for PBXProject OmniBar */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA500010 /* Debug */,
+				AA500011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA500002 /* Build configuration list for PBXNativeTarget OmniBar */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA500020 /* Debug */,
+				AA500021 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA600000 /* Project object */;
+}
