@@ -30,7 +30,18 @@
 		AA000019 /* AboutSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100019 /* AboutSettings.swift */; };
 		AA000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA100020 /* Assets.xcassets */; };
 		AA000021 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100021 /* LaunchAtLogin.swift */; };
+		BB000001 /* OmniBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100001 /* OmniBarTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BB400010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA600000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA300000;
+			remoteInfo = OmniBar;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		AA100000 /* OmniBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OmniBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -60,13 +71,26 @@
 		AA100023 /* OmniBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OmniBar.entitlements; sourceTree = "<group>"; };
 		AA100024 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		AA100027 /* DetailCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailCards.swift; sourceTree = "<group>"; };
+		BB100000 /* OmniBarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmniBarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB100001 /* OmniBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmniBarTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BB400002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		AA200000 /* ... */ = {
 			isa = PBXGroup;
 			children = (
 				AA200001 /* OmniBar */,
+				BB200000 /* OmniBarTests */,
 				AA200002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -75,8 +99,17 @@
 			isa = PBXGroup;
 			children = (
 				AA100000 /* OmniBar.app */,
+				BB100000 /* OmniBarTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BB200000 /* OmniBarTests */ = {
+			isa = PBXGroup;
+			children = (
+				BB100001 /* OmniBarTests.swift */,
+			);
+			path = OmniBarTests;
 			sourceTree = "<group>";
 		};
 		AA200001 /* OmniBar */ = {
@@ -187,6 +220,23 @@
 			productReference = AA100000 /* OmniBar.app */;
 			productType = "com.apple.product-type.application";
 		};
+		BB300000 /* OmniBarTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB500002 /* Build configuration list for PBXNativeTarget OmniBarTests */;
+			buildPhases = (
+				BB400001 /* Sources */,
+				BB400002 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BB400020 /* PBXTargetDependency */,
+			);
+			name = OmniBarTests;
+			productName = OmniBarTests;
+			productReference = BB100000 /* OmniBarTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -211,6 +261,7 @@
 			projectRoot = "";
 			targets = (
 				AA300000 /* OmniBar */,
+				BB300000 /* OmniBarTests */,
 			);
 		};
 /* End PBXProject section */
@@ -257,7 +308,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB400001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB000001 /* OmniBarTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BB400020 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA300000 /* OmniBar */;
+			targetProxy = BB400010 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AA500010 /* Debug */ = {
@@ -374,6 +441,49 @@
 			};
 			name = Release;
 		};
+		BB500010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnibar.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OmniBar.app/Contents/MacOS/OmniBar";
+			};
+			name = Debug;
+		};
+		BB500011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnibar.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OmniBar.app/Contents/MacOS/OmniBar";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -391,6 +501,15 @@
 			buildConfigurations = (
 				AA500020 /* Debug */,
 				AA500021 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB500002 /* Build configuration list for PBXNativeTarget OmniBarTests */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB500010 /* Debug */,
+				BB500011 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
