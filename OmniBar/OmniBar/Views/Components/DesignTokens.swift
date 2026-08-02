@@ -2,7 +2,7 @@
 //  DesignTokens.swift
 //  OmniBar
 //
-//  集中管理设计 tokens（1:1 还原 Stitch 设计系统：OmniBar Dark Tech）
+//  集中管理设计 tokens（参考 666OS/ClashMac：深色玻璃拟态 + 靛蓝强调色）
 //
 
 import SwiftUI
@@ -10,25 +10,27 @@ import SwiftUI
 enum DT {
     // MARK: - 颜色
     enum Color {
-        // 容器与表面
-        static let surface = SwiftUI.Color(red: 0.06, green: 0.07, blue: 0.08)            // #0F1115
-        static let surfaceContainer = SwiftUI.Color(red: 0.10, green: 0.11, blue: 0.14)     // #1A1D23
-        static let surfaceElevated = SwiftUI.Color.white.opacity(0.05)                       // white/5
-        static let stroke = SwiftUI.Color.white.opacity(0.08)                                // outline
-        static let strokeVariant = SwiftUI.Color.white.opacity(0.03)                         // outline-variant/30
+        // 容器与表面（ClashMac 接近黑的冷色深底）
+        static let surface = SwiftUI.Color(red: 0.114, green: 0.114, blue: 0.122)         // #1D1D1F
+        static let surfaceContainer = SwiftUI.Color(red: 0.145, green: 0.145, blue: 0.165) // #25252A
+        static let surfaceElevated = SwiftUI.Color.white.opacity(0.06)                       // 白色/6 浅层
+        static let stroke = SwiftUI.Color.white.opacity(0.08)                                // 描边
+        static let strokeVariant = SwiftUI.Color.white.opacity(0.05)                         // 次级描边
         // 文字
-        static let textPrimary = SwiftUI.Color.white                                         // on-surface
-        static let textSecondary = SwiftUI.Color(red: 0.58, green: 0.64, blue: 0.72)        // #94A3B8
-        static let textTertiary = SwiftUI.Color(red: 0.58, green: 0.64, blue: 0.72).opacity(0.6)
-        static let textLabel = SwiftUI.Color(red: 0.58, green: 0.64, blue: 0.72).opacity(0.8)
-        // 主品牌
-        static let accent = SwiftUI.Color(red: 0.31, green: 0.62, blue: 1.0)                // #4F9DFF
-        static let accentSoft = SwiftUI.Color(red: 0.31, green: 0.62, blue: 1.0).opacity(0.20)
+        static let textPrimary = SwiftUI.Color.white                                         // 主文字
+        static let textSecondary = SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68)         // #949AAE
+        static let textTertiary = SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68).opacity(0.6)
+        static let textLabel = SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68).opacity(0.8)
+        // 主品牌（ClashMac 靛蓝/紫罗兰蓝）
+        static let accent = SwiftUI.Color(red: 0.44, green: 0.47, blue: 0.94)                 // #7078F0
+        static let accentSoft = SwiftUI.Color(red: 0.44, green: 0.47, blue: 0.94).opacity(0.20)
+        // 辅助亮蓝（ClashMac 部分高亮）
+        static let accentBlue = SwiftUI.Color(red: 0.22, green: 0.50, blue: 0.97)             // #3880F8
         static let warningSoft = SwiftUI.Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.15)
         // 状态
         static let success = SwiftUI.Color(red: 0.06, green: 0.73, blue: 0.51)              // #10B981
         static let warning = SwiftUI.Color(red: 0.96, green: 0.62, blue: 0.04)             // #F59E0B
-        static let danger = SwiftUI.Color(red: 0.94, green: 0.27, blue: 0.27)              // #EF4444
+        static let danger = SwiftUI.Color(red: 0.82, green: 0.20, blue: 0.16)              // #D13329
         static let offline = SwiftUI.Color(red: 0.39, green: 0.45, blue: 0.55)              // #64748B
         // 透明占位
         static let clear = SwiftUI.Color.clear
@@ -75,9 +77,44 @@ enum DT {
     }
 }
 
+// MARK: - 液态玻璃（Liquid Glass）
+
+/// 液态玻璃面板背景：ClashX 深色毛玻璃，纯高斯模糊、无彩色渐变。
+/// 用作 PopoverPanel 的整块背景。
+struct LiquidGlassPanel: View {
+    var body: some View {
+        ZStack {
+            // 高斯模糊
+            Rectangle().fill(.ultraThinMaterial)
+            // 深色调，营造 ClashX 深色面板质感
+            Rectangle().fill(Color.black.opacity(0.45))
+            // 极淡蓝色微光，呼应 ClashX 蓝
+            Rectangle().fill(DT.Color.accent.opacity(0.05))
+        }
+    }
+}
+
+/// 液态玻璃卡片底：深色半透明 + 细白描边，纯毛玻璃质感（无渐变）。
+/// 让 DCard / DRow 等容器呈现 ClashX 深色玻璃质感。
+private struct LiquidGlassCard: ViewModifier {
+    var cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                Rectangle().fill(Color.white.opacity(0.07))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+            )
+    }
+}
+
 // MARK: - 通用 UI 组件
 
-/// 卡片容器：圆角12 + 描边 + surface-container 底色
+/// 卡片容器：液态玻璃底（半透白渐变 + 顶部内高光 + 细白描边）
 struct DCard<Content: View>: View {
     var padding: CGFloat = DT.Space.xl
     @ViewBuilder var content: () -> Content
@@ -90,14 +127,7 @@ struct DCard<Content: View>: View {
     var body: some View {
         content()
             .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                    .fill(DT.Color.surfaceContainer)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                    .strokeBorder(DT.Color.stroke, lineWidth: 0.5)
-            )
+            .modifier(LiquidGlassCard(cornerRadius: DT.Radius.card))
     }
 }
 
@@ -112,18 +142,11 @@ struct DRow<Content: View>: View {
     var body: some View {
         content()
             .padding(DT.Space.m)
-            .background(
-                RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                    .fill(DT.Color.surfaceElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                    .strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5)
-            )
+            .modifier(LiquidGlassCard(cornerRadius: DT.Radius.row))
     }
 }
 
-/// 分组小标题（uppercase tracking-widest）
+/// 分组小标题（uppercase tracking-widest，居左显示）
 struct DSectionLabel: View {
     let title: String
     var body: some View {
@@ -132,6 +155,7 @@ struct DSectionLabel: View {
             .foregroundStyle(DT.Color.textLabel)
             .textCase(.uppercase)
             .tracking(1.5)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

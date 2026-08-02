@@ -80,6 +80,45 @@ final class OmnirouteAPIClient {
         return try decoder.decode(T.self, from: data)
     }
 
+    /// 发送请求并验证 2xx，不解析响应体（用于 PATCH/DELETE 等 204 端点）。
+    @discardableResult
+    private func requestVoid(_ path: String, method: String = "GET", body: Data? = nil, includeCliToken: Bool = false) async throws -> Void {
+        var components = URLComponents()
+        components.scheme = "http"
+        components.host = "localhost"
+        components.port = port
+        components.path = path
+
+        guard let url = components.url else {
+            throw OmnirouteAPIError.transport(URLError(.badURL))
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !apiKey.isEmpty {
+            request.setValue("Bearer \\(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        if includeCliToken, let token = cliToken {
+            request.setValue(token, forHTTPHeaderField: "x-omniroute-cli-token")
+        }
+        request.httpBody = body
+
+        let (_, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw OmnirouteAPIError.transport(URLError(.badServerResponse))
+        }
+        if http.statusCode == 401 {
+            throw OmnirouteAPIError.unauthorized
+        }
+        if http.statusCode == 404 || http.statusCode == 405 {
+            throw OmnirouteAPIError.endpointUnavailable
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw OmnirouteAPIError.httpError(http.statusCode)
+        }
+    }
+
     // MARK: - CLI Token (machine-id derived, mirrors omniroute CLI)
 
     /// omniroute 的 CLI 通过 machine-id + 固定 salt 派生一个本地 cli-token，
@@ -252,6 +291,47 @@ final class OmnirouteAPIClient {
             savedTokens: savedTokens,
             savedCost: savedCost
         )
+    }
+
+    // MARK: - System Version & Provider Operations
+
+    /// /api/system/version -> { current, latest, updateAvailable, ... }
+    struct SystemVersion: Codable {
+        let current: String?
+        let latest: String?
+        let updateAvailable: Bool?
+    }
+
+    func fetchSystemVersion() async throws -> SystemVersion {
+        try await request("/api/system/version")
+    }
+
+    /// /api/providers/{id}/test -> { valid, error, latencyMs, ... } 重新检测单一连接健康度
+    struct ProviderTestResult: Codable {
+        let valid: Bool?
+        let error: String?
+    }
+
+    func testProvider(id: String) async throws -> ProviderTestResult {
+        try await request("/api/providers/\\(id)/test", method: "POST")
+    }
+
+    /// PATCH /api/providers/{id} 更新连接（isActive 启用/停用，priority 优先级），返回 204
+    func updateProvider(id: String, isActive: Bool? = nil, priority: Int? = nil) async throws {
+        struct Body: Codable {
+            var isActive: Bool?
+            var priority: Int?
+        }
+        var body = Body()
+        body.isActive = isActive
+        body.priority = priority
+        let data = try JSONEncoder().encode(body)
+        try await requestVoid("/api/providers/\\(id)", method: "PATCH", body: data)
+    }
+
+    /// DELETE /api/providers/{id} 删除连接
+    func deleteProvider(id: String) async throws {
+        try await requestVoid("/api/providers/\\(id)", method: "DELETE")
     }
 
     private static let isoDateFormatter: ISO8601DateFormatter = {

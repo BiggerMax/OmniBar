@@ -36,6 +36,24 @@ final class OmnirouteService: ObservableObject {
     @Published private(set) var uptime: TimeInterval = 0
     @Published private(set) var startedAt: Date? = nil
 
+    // MARK: 版本与更新
+    /// 当前 omniroute 版本（GET /api/system/version -> current）
+    @Published private(set) var systemVersion: String = "—"
+    /// 远程最新版本
+    @Published private(set) var latestVersion: String = "—"
+    /// 是否存在可更新版本
+    @Published private(set) var updateAvailable: Bool = false
+    @Published private(set) var isCheckingUpdate: Bool = false
+    @Published private(set) var isUpdating: Bool = false
+    /// 最近一次更新/检查的提示信息
+    @Published private(set) var updateMessage: String? = nil
+
+    // MARK: Provider 操作
+    /// 是否有 provider 操作（测试/启用/优先级/删除）进行中
+    @Published private(set) var providerOperationInProgress: Bool = false
+    /// 最近一次 provider 操作的提示信息
+    @Published private(set) var providerOperationMessage: String? = nil
+
     @Published private(set) var providers: [Provider] = []
     @Published private(set) var combos: [Combo] = []
     @Published private(set) var activeComboID: String? = nil
@@ -57,6 +75,16 @@ final class OmnirouteService: ObservableObject {
     private var uptimeTimer: Timer?
     /// 由本 App 拉起的 omniroute 进程（用于退出时清理引用）
     private var launchedTask: Process?
+
+    // MARK: - 生命周期托管状态
+    /// 上次轮询是否处于运行状态（用于识别“运行中→意外停止”的崩溃）
+    private var wasRunning = false
+    /// 连续自动重启计数，配合 restartRetryLimit 防止无限重启循环
+    private var consecutiveCrashCount = 0
+    /// 用户手动停止后抑制自动重启（直到再次手动启动）
+    private var suppressAutoRestart = false
+    /// 防止并发触发自动重启
+    private var autoRestartInFlight = false
 
     nonisolated var settingsChanges: AnyPublisher<Void, Never> {
         settings.objectWillChange.map { _ in () }.eraseToAnyPublisher()
@@ -134,17 +162,39 @@ final class OmnirouteService: ObservableObject {
             combos = []
             needsAuth = false
             lastErrorMessage = nil
+
+            // 崩溃自动重启：之前在运行、未手动停止、且在重试上限内
+            let shouldRestart = wasRunning
+                && settings.autoRestartOnCrash
+                && !suppressAutoRestart
+                && !autoRestartInFlight
+                && consecutiveCrashCount < settings.restartRetryLimit
+            if shouldRestart {
+                autoRestartInFlight = true
+                consecutiveCrashCount += 1
+                lastErrorMessage = "omniroute 意外停止，正在自动重启 (\(consecutiveCrashCount)/\(settings.restartRetryLimit))…"
+                _ = await startInternal()
+                autoRestartInFlight = false
+                // 恢复健康则清除提示；恢复失败会由下一轮继续尝试（直到重试上限）
+                if status == .running {
+                    lastErrorMessage = nil
+                }
+            }
             return
         }
 
+        // 健康：重置崩溃计数，标记正在运行
+        consecutiveCrashCount = 0
+        wasRunning = true
         status = .running
         pid = await findPID()
 
-        // 并行获取 providers / combos / usage
+        // 并行获取 providers / combos / usage / system version
         do {
             async let p = api.fetchProviders()
             async let c = api.fetchCombos()
             async let u = api.fetchUsageStats()
+            async let v = api.fetchSystemVersion()
 
             let (providers, combos) = try await (p, c)
             self.providers = providers
@@ -152,6 +202,16 @@ final class OmnirouteService: ObservableObject {
             // usage 获取失败不阻断主流程（部分网关可能未启用 analytics）
             if let stats = try? await u {
                 self.usage = stats
+            }
+            // 版本信息：失败不阻断，仅保持上次值
+            if let ver = try? await v {
+                if let cur = ver.current, !cur.isEmpty { self.systemVersion = cur }
+                if let lat = ver.latest, !lat.isEmpty { self.latestVersion = lat }
+                self.updateAvailable = ver.updateAvailable ?? false
+                // 同步顶部状态卡片的 version 显示为真实版本
+                if !self.systemVersion.isEmpty, self.systemVersion != "—" {
+                    self.version = self.systemVersion
+                }
             }
             // 读取服务端当前激活的 combo（部分版本不回写，则回退到列表首项）
             if let active = try? await api.fetchActiveCombo(),
@@ -217,7 +277,20 @@ final class OmnirouteService: ObservableObject {
     }
 
     func start() async -> Bool {
-        await perform(.start) { await self.startInternal() }
+        // 手动启动：解除抑制，允许后续崩溃自动重启
+        suppressAutoRestart = false
+        return await perform(.start) { await self.startInternal() }
+    }
+
+    /// 启动时自动拉起：若已启用 autoStartOnLaunch 且服务未运行，则以托管方式启动
+    func startIfNeeded() async {
+        guard settings.autoStartOnLaunch else { return }
+        if await checkProcessAlive() {
+            wasRunning = true
+            return
+        }
+        suppressAutoRestart = false
+        await startInternal()
     }
 
     private func startInternal() async -> Bool {
@@ -283,7 +356,25 @@ final class OmnirouteService: ObservableObject {
     }
 
     func stop() async -> Bool {
-        await perform(.stop) { await self.stopInternal() }
+        // 手动停止：抑制崩溃自动重启，用户明确要关闭
+        suppressAutoRestart = true
+        wasRunning = false
+        let ok = await perform(.stop) { await self.stopInternal() }
+        if ok {
+            consecutiveCrashCount = 0
+        }
+        return ok
+    }
+
+    /// 退出 OmniBar 时的完整清理：停止轮询，并（按配置 stopOnQuit）停止 omniroute。
+    /// 供 applicationShouldTerminate 使用，返回后通常已同步完毕，App 可安全退出。
+    func shutdown() async {
+        suppressAutoRestart = true
+        wasRunning = false
+        stopPolling()
+        if settings.stopOnQuit {
+            _ = await stopInternal()
+        }
     }
 
     private func stopInternal() async -> Bool {
@@ -477,6 +568,185 @@ final class OmnirouteService: ObservableObject {
         } catch {
             self.lastErrorMessage = "切换失败：\(error.localizedDescription)"
             return false
+        }
+    }
+
+    // MARK: - Provider Operations
+
+    /// 重新测试单个 Provider 连接（触发健康度检测），成功后刷新本地列表。
+    func testProvider(_ provider: Provider) async -> Bool {
+        guard !providerOperationInProgress else { return false }
+        providerOperationInProgress = true
+        defer { providerOperationInProgress = false }
+        do {
+            let result = try await api.testProvider(id: provider.id)
+            if result.valid == true {
+                providerOperationMessage = "「\(provider.displayName)」测试通过"
+            } else if let err = result.error, !err.isEmpty {
+                providerOperationMessage = "「\(provider.displayName)」测试失败：\(err)"
+            } else {
+                providerOperationMessage = "「\(provider.displayName)」测试未通过"
+            }
+            await refreshStatus()
+            return result.valid ?? false
+        } catch OmnirouteAPIError.unauthorized {
+            self.needsAuth = true
+            providerOperationMessage = "API 鉴权失败：请在偏好设置 → 连接 中填写正确的 API Key"
+            return false
+        } catch OmnirouteAPIError.endpointUnavailable {
+            providerOperationMessage = "网关未提供测试接口（/api/providers/{id}/test 不可用）"
+            return false
+        } catch {
+            providerOperationMessage = "测试失败：\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// 启用/停用单个 Provider 连接。
+    func setProviderActive(_ provider: Provider, active: Bool) async -> Bool {
+        guard !providerOperationInProgress else { return false }
+        providerOperationInProgress = true
+        defer { providerOperationInProgress = false }
+        do {
+            try await api.updateProvider(id: provider.id, isActive: active)
+            providerOperationMessage = "「\(provider.displayName)」已\(active ? "启用" : "停用")"
+            await refreshStatus()
+            return true
+        } catch OmnirouteAPIError.unauthorized {
+            self.needsAuth = true
+            providerOperationMessage = "API 鉴权失败：请在偏好设置 → 连接 中填写正确的 API Key"
+            return false
+        } catch OmnirouteAPIError.endpointUnavailable {
+            providerOperationMessage = "网关未提供更新接口（PATCH /api/providers/{id} 不可用）"
+            return false
+        } catch {
+            providerOperationMessage = "\(active ? "启用" : "停用")失败：\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// 调整单个 Provider 连接的优先级。
+    func setProviderPriority(_ provider: Provider, priority: Int) async -> Bool {
+        guard !providerOperationInProgress else { return false }
+        providerOperationInProgress = true
+        defer { providerOperationInProgress = false }
+        do {
+            try await api.updateProvider(id: provider.id, priority: priority)
+            providerOperationMessage = "「\(provider.displayName)」优先级设为 \(priority)"
+            await refreshStatus()
+            return true
+        } catch OmnirouteAPIError.unauthorized {
+            self.needsAuth = true
+            providerOperationMessage = "API 鉴权失败：请在偏好设置 → 连接 中填写正确的 API Key"
+            return false
+        } catch OmnirouteAPIError.endpointUnavailable {
+            providerOperationMessage = "网关未提供更新接口（PATCH /api/providers/{id} 不可用）"
+            return false
+        } catch {
+            providerOperationMessage = "优先级调整失败：\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// 删除单个 Provider 连接。
+    func deleteProvider(_ provider: Provider) async -> Bool {
+        guard !providerOperationInProgress else { return false }
+        providerOperationInProgress = true
+        defer { providerOperationInProgress = false }
+        do {
+            try await api.deleteProvider(id: provider.id)
+            providerOperationMessage = "「\(provider.displayName)」已删除"
+            await refreshStatus()
+            return true
+        } catch OmnirouteAPIError.unauthorized {
+            self.needsAuth = true
+            providerOperationMessage = "API 鉴权失败：请在偏好设置 → 连接 中填写正确的 API Key"
+            return false
+        } catch OmnirouteAPIError.endpointUnavailable {
+            providerOperationMessage = "网关未提供删除接口（DELETE /api/providers/{id} 不可用）"
+            return false
+        } catch {
+            providerOperationMessage = "删除失败：\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// 清除最近一次 provider 操作的提示信息（UI 主动消费后调用）。
+    func clearProviderOperationMessage() {
+        providerOperationMessage = nil
+    }
+
+    // MARK: - Version & Update
+
+    /// 主动检查更新（即时拉取 /api/system/version）。与轮询合并刷新，UI 可手动触发。
+    func checkForUpdate() async {
+        isCheckingUpdate = true
+        defer { isCheckingUpdate = false }
+        do {
+            let ver = try await api.fetchSystemVersion()
+            if let cur = ver.current, !cur.isEmpty { self.systemVersion = cur }
+            if let lat = ver.latest, !lat.isEmpty { self.latestVersion = lat }
+            self.updateAvailable = ver.updateAvailable ?? false
+            if !self.systemVersion.isEmpty, self.systemVersion != "—" {
+                self.version = self.systemVersion
+            }
+            if self.updateAvailable {
+                updateMessage = "发现新版本 \(self.latestVersion)（当前 \(self.systemVersion)）"
+            } else {
+                updateMessage = "已是最新版本 \(self.systemVersion)"
+            }
+        } catch OmnirouteAPIError.unauthorized {
+            self.needsAuth = true
+            updateMessage = "检查更新失败：API 鉴权失败"
+        } catch OmnirouteAPIError.endpointUnavailable {
+            updateMessage = "网关未提供版本接口（/api/system/version 不可用）"
+        } catch {
+            updateMessage = "检查更新失败：\(error.localizedDescription)"
+        }
+    }
+
+    /// 执行 omniroute 更新。
+    /// omniroute 通过 npm 全局安装，更新走 `npm install -g omniroute@latest`。
+    /// 更新完成后提示用户重启服务以应用新版本（不自动重启，避免打断在途请求）。
+    @discardableResult
+    func performUpdate() async -> Bool {
+        guard !isUpdating else { return false }
+        isUpdating = true
+        updateMessage = "正在更新 omniroute…"
+        defer { isUpdating = false }
+        let ok = await Self.runNpmInstallLatest()
+        if ok {
+            updateMessage = "更新完成，请重启 Omniroute 服务以应用新版本"
+            await checkForUpdate()
+        } else {
+            updateMessage = "更新失败：npm install -g omniroute@latest 执行未成功，请查看终端日志"
+        }
+        return ok
+    }
+
+    /// 清除最近一次更新操作的提示信息。
+    func clearUpdateMessage() {
+        updateMessage = nil
+    }
+
+    /// 同步执行 npm install -g omniroute@latest（off-main，避免阻塞 UI）。
+    private static nonisolated func runNpmInstallLatest() async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/bin/zsh")
+                task.arguments = ["-lc", "npm install -g omniroute@latest"]
+                task.standardOutput = FileHandle.nullDevice
+                task.standardError = FileHandle.nullDevice
+                task.standardInput = FileHandle.nullDevice
+                do {
+                    try task.run()
+                    task.waitUntilExit()
+                    continuation.resume(returning: task.terminationStatus == 0)
+                } catch {
+                    continuation.resume(returning: false)
+                }
+            }
         }
     }
 

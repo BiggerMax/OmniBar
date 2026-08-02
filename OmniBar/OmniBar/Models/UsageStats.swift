@@ -55,6 +55,11 @@ struct UsageStats: Codable {
         return min(1.0, max(0.0, 0))
     }
 
+    /// 是否设置了月度预算（omniroute HTTP 接口通常不可得，恒为 false）
+    var hasBudget: Bool {
+        NSDecimalNumber(decimal: monthBudget).doubleValue > 0
+    }
+
     static func formatTokenCount(_ count: Int) -> String {
         if count >= 1_000_000 {
             return String(format: "%.1fM", Double(count) / 1_000_000)

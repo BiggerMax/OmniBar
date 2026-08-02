@@ -9,6 +9,8 @@ import SwiftUI
 
 struct StatusCard: View {
     @ObservedObject var service: OmnirouteService
+    var onCheckUpdate: () -> Void = {}
+    @State private var isPressed = false
 
     var body: some View {
         DCard(padding: DT.Space.xl) {
@@ -17,6 +19,15 @@ struct StatusCard: View {
                 metricsGrid
             }
         }
+        // 对齐 HTML：卡片按压时整体轻微缩小（active:scale-[0.99]）
+        .scaleEffect(isPressed ? 0.99 : 1.0)
+        .animation(.easeOut(duration: 0.12), value: isPressed)
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in if !isPressed { isPressed = true } }
+                .onEnded { _ in isPressed = false }
+        )
     }
 
     private var topRow: some View {
@@ -48,6 +59,21 @@ struct StatusCard: View {
                 .padding(.horizontal, DT.Space.s)
                 .padding(.vertical, 2)
                 .background(Capsule().fill(DT.Color.warningSoft))
+            } else if service.updateAvailable {
+                Button(action: onCheckUpdate) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 11))
+                        Text("v\(service.version)")
+                            .font(DT.Font.monoSmall)
+                    }
+                    .foregroundStyle(DT.Color.warning)
+                    .padding(.horizontal, DT.Space.s)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(DT.Color.warningSoft))
+                }
+                .buttonStyle(.borderless)
+                .help("发现新版本，点击检查/更新")
             } else {
                 Text("v\(service.version)")
                     .font(DT.Font.monoSmall)

@@ -20,13 +20,66 @@ struct ProviderList: View {
             if providers.isEmpty {
                 emptyView
             } else {
-                LazyVStack(spacing: DT.Space.m) {
-                    ForEach(providers) { provider in
-                        providerRow(provider)
+                LazyVStack(alignment: .leading, spacing: DT.Space.l) {
+                    ForEach(groups.indices, id: \.self) { index in
+                        groupSection(groups[index])
                     }
                 }
             }
         }
+    }
+
+    // MARK: - 按服务商分组
+    private var groups: [(type: String, providers: [Provider])] {
+        // 保持原始顺序：合并相同服务商类型的连接，避免打乱展示次序
+        var result: [(type: String, providers: [Provider])] = []
+        var indexById: [String: Int] = [:]
+        for p in providers {
+            let key = p.providerTypeShort
+            if let i = indexById[key] {
+                result[i].providers.append(p)
+            } else {
+                indexById[key] = result.count
+                result.append((key, [p]))
+            }
+        }
+        return result
+    }
+
+    /// 单组：服务商标题（可读名 + 活跃/总数）+ 组内连接行
+    private func groupSection(_ group: (type: String, providers: [Provider])) -> some View {
+        VStack(alignment: .leading, spacing: DT.Space.s) {
+            HStack(spacing: DT.Space.s) {
+                Text(displayName(group.type))
+                    .font(DT.Font.micro)
+                    .foregroundStyle(DT.Color.textLabel)
+                    .lineLimit(1)
+                Spacer()
+                Text("\\(activeCount(in: group.providers))/\\(group.providers.count)")
+                    .font(DT.Font.monoTiny)
+                    .foregroundStyle(DT.Color.textTertiary)
+            }
+            .padding(.horizontal, DT.Space.xs)
+            .padding(.top, DT.Space.s)
+
+            LazyVStack(spacing: DT.Space.m) {
+                ForEach(group.providers) { provider in
+                    providerRow(provider)
+                }
+            }
+        }
+    }
+
+    /// 把 "siliconflow" / "openai-compatible-chat" 转成可读名
+    private func displayName(_ type: String) -> String {
+        type
+            .split(separator: "-")
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
+    }
+
+    private func activeCount(in list: [Provider]) -> Int {
+        list.filter { $0.health == .active }.count
     }
 
     // MARK: - Section Header
@@ -64,6 +117,17 @@ struct ProviderList: View {
     // MARK: - Row
     // 对齐 HTML .provider-row：[状态图标 gap-3 名称] | [延迟 gap-3 状态胶囊]
     private func providerRow(_ provider: Provider) -> some View {
+        ProviderRowView(provider: provider, onSelect: onSelect)
+    }
+}
+
+/// 单行 Provider：封装 hover 描边状态，对齐 HTML hover:border-outline-variant/30
+private struct ProviderRowView: View {
+    let provider: Provider
+    var onSelect: (Provider) -> Void
+    @State private var isHovering = false
+
+    var body: some View {
         Button(action: { onSelect(provider) }) {
             HStack(spacing: DT.Space.l) {
                 // 左侧：状态图标（check_circle / hourglass / cancel / questionmark）+ 名称，gap-3
@@ -92,11 +156,8 @@ struct ProviderList: View {
 
                 Spacer(minLength: DT.Space.s)
 
-                // 右侧：延迟（mono）+ 状态胶囊，gap-3；chevron 用于进入大卡片
+                // 右侧：状态胶囊 + 进入指示，gap-3；chevron 用于进入大卡片
                 HStack(spacing: DT.Space.l) {
-                    Text(provider.latencyText + " ms")
-                        .font(DT.Font.monoSmall)
-                        .foregroundStyle(DT.Color.textSecondary)
                     // 状态胶囊：对齐 HTML .health-badge，颜色随状态（绿/黄/红）
                     StatusPill(text: provider.healthLabel, color: provider.healthColor)
                     // 进入指示
@@ -113,12 +174,15 @@ struct ProviderList: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                    .strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5)
+                    .strokeBorder(isHovering ? DT.Color.accent.opacity(0.28) : DT.Color.strokeVariant, lineWidth: 0.5)
             )
         }
         .buttonStyle(PlainRowButtonStyle())
         // 离线（error）整行降透明度，对齐 HTML 的 .opacity-60
         .opacity(provider.isDimmed ? 0.6 : 1.0)
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.18)) { isHovering = hovering }
+        }
         .animation(.easeOut(duration: 0.25), value: provider.health)
     }
 }

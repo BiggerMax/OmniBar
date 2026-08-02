@@ -17,6 +17,18 @@ struct GeneralSettings: View {
                     DRow {
                         toggleRow(title: "开机自启动 Omniroute + OmniBar", isOn: $settings.launchAtLogin)
                     }
+                    DRow {
+                        toggleRow(title: "启动 OmniBar 时自动拉起 Omniroute", isOn: $settings.autoStartOnLaunch)
+                    }
+                }
+                section(title: "进程托管") {
+                    DCard(padding: 0) {
+                        VStack(spacing: 0) {
+                            toggleRow(title: "Omniroute 意外崩溃后自动重启", isOn: $settings.autoRestartOnCrash)
+                            Divider().background(DT.Color.strokeVariant).padding(.horizontal, DT.Space.l)
+                            toggleRow(title: "退出 OmniBar 时停止 Omniroute", isOn: $settings.stopOnQuit)
+                        }
+                    }
                 }
                 section(title: "显示") {
                     DCard(padding: 0) {
@@ -47,6 +59,10 @@ struct GeneralSettings: View {
                     }
                 }
             }
+        }
+        .scrollIndicators(.hidden)
+        .introspectScrollView { nssv in
+            NSScrollView.omnibarHideScrollbars(nssv)
         }
     }
 

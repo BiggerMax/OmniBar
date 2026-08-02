@@ -30,9 +30,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         omnirouteService.startPolling()
         Task { await omnirouteService.refreshStatus() }
+        // 全生命周期托管：启动时自动拉起 omniroute（若开启且未运行）
+        Task { await omnirouteService.startIfNeeded() }
+    }
+
+    /// 优雅退出：若开启 stopOnQuit，先停止 omniroute 再真正退出，避免后台残留
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let service = omnirouteService, settings.stopOnQuit else {
+            omnirouteService?.stopPolling()
+            return .terminateNow
+        }
+        Task { @MainActor in
+            await service.shutdown()
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        omnirouteService.stopPolling()
+        omnirouteService?.stopPolling()
     }
 }

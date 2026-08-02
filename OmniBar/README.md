@@ -12,8 +12,12 @@
   - Combo 路由策略选择器
   - 用量速览（今日 Token / 本月预算 / 预估节省）
 - **偏好设置**：开机自启、菜单栏显示开关、端口、API Key、二进制路径、Dashboard URL、关于
+- **全生命周期托管**：启动 OmniBar 自动拉起 Omniroute、崩溃自动重启（带重试上限）、退出时自动停止，均可在偏好设置中开关
+- **Provider 操作**：在 Provider 详情卡片中测试连接、启用/停用、调整优先级、删除（二次确认）
+- **版本更新**：自动检测 omniroute 新版本，菜单栏版本胶囊高亮提示，一键 `npm install -g omniroute@latest` 更新
 - **开机自启**：基于 Service Management (`SMAppService.mainApp`)，回退到登录项脚本
 - **优雅降级**：Omniroute 未运行时显示「服务未启动」，不崩溃
+- **无滚动条 UI**：所有页面（Popover 列表 / 详情大卡片 / 设置页）统一隐藏滚动条，并强制 overlay 滚动条风格 + 关闭自动 content insets，确保隐藏后内容占满全宽、不会整体偏左
 
 ## 技术栈
 
@@ -22,6 +26,7 @@
 - Service Management（开机自启）
 - 最低 macOS 14.0 (Sonoma)
 - 纯原生无第三方依赖
+- `NSScrollView` 内省：通过 `NSViewRepresentable` 遍历窗口子树，强制隐藏滚动条（`DetailCards.swift` 中的 `introspectScrollView` + `NSScrollView.omnibarHideScrollbars`）
 
 ## 项目结构
 
@@ -87,6 +92,10 @@ xcodebuild -project OmniBar.xcodeproj -scheme OmniBar -configuration Release -de
 | Endpoint                       | Method | 描述                  |
 | ------------------------------ | ------ | --------------------- |
 | `/api/providers`               | GET    | Provider 列表与健康度 |
+| `/api/providers/{id}`          | PATCH  | 启用/停用、调整优先级 |
+| `/api/providers/{id}`          | DELETE | 删除连接            |
+| `/api/providers/{id}/test`     | POST   | 重新测试连接健康度  |
+| `/api/system/version`          | GET    | 当前/最新版本与可更新状态 |
 | `/api/combos`                  | GET    | Combo 路由策略列表    |
 | `/api/combos/activate`         | POST   | 切换当前 Combo        |
 | `/api/usage`                   | GET    | 用量统计              |

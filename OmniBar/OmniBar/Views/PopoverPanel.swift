@@ -37,11 +37,7 @@ struct PopoverPanel: View {
             actionBar
         }
         .frame(width: panelWidth, height: 520)
-        .background(
-            RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                .fill(DT.Color.surface.opacity(0.85))
-                .background(.ultraThinMaterial)
-        )
+        .background(LiquidGlassPanel())
         .overlay(
             RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
                 .strokeBorder(DT.Color.stroke, lineWidth: 1)
@@ -56,12 +52,12 @@ struct PopoverPanel: View {
         switch route {
         case .list:
             listContent
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
+                .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
         case .provider(let p):
-            ProviderDetailCard(provider: p) {
+            ProviderDetailCard(provider: p, service: service) {
                 withAnimation(.easeInOut(duration: 0.22)) { route = .list }
             }
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
+            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
         case .combo(let c):
             ComboDetailCard(
                 combo: c,
@@ -74,19 +70,25 @@ struct PopoverPanel: View {
                     }
                 }
             )
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
+            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
         }
     }
 
     // MARK: - 列表内容
     private var listContent: some View {
-        ScrollView(.vertical, showsIndicators: true) {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: DT.Space.xxl) {
-                StatusCard(service: service)
+                StatusCard(service: service) {
+                    Task { await service.checkForUpdate() }
+                }
                 if service.needsAuth {
                     authBanner
+                } else if service.isUpdating {
+                    updateBanner
                 } else if let err = service.lastErrorMessage, !service.needsAuth {
                     errorBanner(err)
+                } else if let msg = service.updateMessage, service.updateAvailable {
+                    updateAvailableBanner(msg)
                 }
                 ProviderList(providers: service.providers) { provider in
                     withAnimation(.easeInOut(duration: 0.22)) { route = .provider(provider) }
@@ -102,6 +104,10 @@ struct PopoverPanel: View {
             .padding(.bottom, 56) // 给底部 Action Bar 留位置
         }
         .scrollDisabled(false)
+        .scrollIndicators(.hidden)
+        .introspectScrollView { nssv in
+            NSScrollView.omnibarHideScrollbars(nssv)
+        }
     }
 
     // MARK: - 顶栏
@@ -188,7 +194,7 @@ struct PopoverPanel: View {
         }
         .frame(height: 56)
         .padding(.leading, DT.Space.xl)
-        .background(DT.Color.surfaceContainer.opacity(0.6).background(.ultraThinMaterial))
+        .background(DT.Color.surface.opacity(0.7).background(.ultraThinMaterial))
         .overlay(
             Rectangle().fill(DT.Color.stroke).frame(height: 0.5),
             alignment: .top
@@ -255,6 +261,58 @@ struct PopoverPanel: View {
         .overlay(
             RoundedRectangle(cornerRadius: DT.Radius.card)
                 .stroke(DT.Color.stroke, lineWidth: 1)
+        )
+    }
+
+    /// 更新进行中横幅
+    private var updateBanner: some View {
+        HStack(spacing: DT.Space.m) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(DT.Color.accent)
+            Text(service.updateMessage ?? "正在更新 omniroute…")
+                .font(DT.Font.caption)
+                .foregroundStyle(DT.Color.textPrimary)
+                .lineLimit(2)
+            Spacer()
+        }
+        .padding(DT.Space.m)
+        .background(DT.Color.accentSoft)
+        .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: DT.Radius.card)
+                .stroke(DT.Color.accent.opacity(0.4), lineWidth: 1)
+        )
+    }
+
+    /// 发现新版本横幅：可一键更新
+    private func updateAvailableBanner(_ message: String) -> some View {
+        HStack(spacing: DT.Space.m) {
+            Image(systemName: "arrow.up.circle.fill")
+                .foregroundStyle(DT.Color.warning)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Omniroute 可更新")
+                    .font(DT.Font.bodyMedium)
+                    .foregroundStyle(DT.Color.textPrimary)
+                Text(message)
+                    .font(DT.Font.caption)
+                    .foregroundStyle(DT.Color.textSecondary)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Button("更新") {
+                Task { await service.performUpdate() }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .tint(DT.Color.accent)
+        }
+        .padding(DT.Space.m)
+        .background(DT.Color.warningSoft)
+        .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: DT.Radius.card)
+                .stroke(DT.Color.warning.opacity(0.4), lineWidth: 1)
         )
     }
 }

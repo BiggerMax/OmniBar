@@ -93,11 +93,6 @@ struct Provider: Codable, Identifiable, Hashable {
     var healthColor: SwiftUI.Color { health.color }
     var isDimmed: Bool { health.isDimmed }
 
-    /// 行内延迟显示。当前 omniroute /api/providers 不返回 latency，
-    /// 对齐 popover.html 用 "--" 占位；离线时同样为 "--"。
-    /// TODO: 待网关提供延迟字段后改为真实数值。
-    var latencyText: String { "--" }
-
     /// 行内主显示名：优先用连接 name（如 "Key 1" / "main"），无则退化到 provider 类型简称
     var displayName: String {
         let n = name.trimmingCharacters(in: .whitespaces)

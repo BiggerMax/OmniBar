@@ -25,6 +25,9 @@ generated-images/
 .vscode/
 *.swp
 
+# Command Code local config (taste, settings)
+.commandcode/
+
 # OS / temp
 *.log
 .TemporaryItems/

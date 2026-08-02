@@ -12,6 +12,8 @@ struct ComboSelector: View {
     @State private var isSwitching: Bool = false
     /// 内联切换下拉是否展开
     @State private var showingMenu: Bool = false
+    /// 卡片是否被悬停（与 Provider 行 hover 描边一致）
+    @State private var isHovering: Bool = false
     /// 点击卡片主体 → 打开大卡片详情
     var onSelect: (Combo) -> Void = { _ in }
 
@@ -42,8 +44,11 @@ struct ComboSelector: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                        .strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5)
+                        .strokeBorder(isHovering ? DT.Color.accent.opacity(0.28) : DT.Color.strokeVariant, lineWidth: 0.5)
                 )
+                .onHover { hovering in
+                    withAnimation(.easeOut(duration: 0.18)) { isHovering = hovering }
+                }
                 .animation(.easeOut(duration: 0.2), value: showingMenu)
             }
         }

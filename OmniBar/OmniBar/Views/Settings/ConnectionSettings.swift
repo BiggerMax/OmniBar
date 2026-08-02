@@ -49,6 +49,10 @@ struct ConnectionSettings: View {
                 )
             }
         }
+        .scrollIndicators(.hidden)
+        .introspectScrollView { nssv in
+            NSScrollView.omnibarHideScrollbars(nssv)
+        }
     }
 
     private func fieldRow(label: String, placeholder: String, text: Binding<String>) -> some View {
