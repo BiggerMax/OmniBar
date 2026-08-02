@@ -57,11 +57,10 @@ private final class ScrollViewIntrospectView: NSView {
         }
     }
 
-    /// 每次布局时重新应用：SwiftUI 重建/重排 ScrollView 后也能保持隐藏
-    override func layout() {
-        super.layout()
-        applyConfiguration()
-    }
+    // 注意：不要在这里 override layout() 去 applyConfiguration()。
+    // ScrollView 内容滚动/重排会持续触发本视图的 layout()，每次全窗口遍历
+    // 并重置 contentInsets，会造成内容在滚动中跳动偏移。隐藏滚动条只需在
+    // 挂载 + 路由过渡窗口内（viewDidMoveToWindow + retry timer）配置一次。
 
     func applyConfiguration() {
         guard !isApplying, let configure, let window else { return }

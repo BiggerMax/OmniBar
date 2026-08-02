@@ -179,5 +179,43 @@ final class OmnirouteAPIClientTests: XCTestCase {
             XCTFail("Unexpected error type: \(error)")
         }
     }
+
+    // MARK: - Prompt Compression
+
+    func testFetchCompressionSettingsDecodes() async throws {
+        let json = """
+        {"enabled":true,"defaultMode":"aggressive","cacheMinutes":5,
+         "preserveSystemPrompt":true,"engines":{}}
+        """
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer \(self.apiKey)")
+            return (try self.response(status: 200, for: "/api/settings/compression"), Data(json.utf8))
+        }
+        let cs = try await client.fetchCompressionSettings()
+        XCTAssertTrue(cs.enabled)
+        XCTAssertEqual(cs.defaultMode, "aggressive")
+
+        let url = try XCTUnwrap(MockURLProtocol.lastRequest?.url)
+        XCTAssertEqual(url.path, "/api/settings/compression")
+    }
+
+    func testSetCompressionSettingsSendsPatchAndDecodes() async throws {
+        let json = """
+        {"enabled":false,"defaultMode":"standard","cacheMinutes":5,
+         "preserveSystemPrompt":true,"engines":{}}
+        """
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "PATCH")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer \(self.apiKey)")
+            return (try self.response(status: 200, for: "/api/settings/compression"), Data(json.utf8))
+        }
+        let cs = try await client.setCompressionSettings(enabled: false, defaultMode: "standard")
+        XCTAssertFalse(cs.enabled)
+        XCTAssertEqual(cs.defaultMode, "standard")
+
+        let url = try XCTUnwrap(MockURLProtocol.lastRequest?.url)
+        XCTAssertEqual(url.path, "/api/settings/compression")
+    }
 }
 

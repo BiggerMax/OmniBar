@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
+    var service: OmnirouteService?
     @State private var selection: Tab = .general
 
     enum Tab: String, CaseIterable, Identifiable {
@@ -48,8 +49,8 @@ struct SettingsView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous))
         .shadow(color: .black.opacity(0.5), radius: 25, x: 0, y: 25)
-        // 设置窗口强制深色，保持深色玻璃风格
-        .preferredColorScheme(.dark)
+        // 设置窗口与 Popover 统一：浅色玻璃风格
+        .preferredColorScheme(.light)
     }
 
     // MARK: 侧边栏
@@ -126,7 +127,7 @@ struct SettingsView: View {
     private var contentArea: some View {
         Group {
             switch selection {
-            case .general: GeneralSettings(settings: settings)
+            case .general: GeneralSettings(settings: settings, service: service)
             case .connection: ConnectionSettings(settings: settings)
             case .about: AboutSettings()
             }

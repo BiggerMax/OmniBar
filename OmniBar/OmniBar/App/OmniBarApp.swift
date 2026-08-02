@@ -14,7 +14,10 @@ struct OmniBarApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView(settings: settings)
+            SettingsView(
+                settings: settings,
+                service: (NSApplication.shared.delegate as? AppDelegate)?.omnirouteService
+            )
         }
     }
 }

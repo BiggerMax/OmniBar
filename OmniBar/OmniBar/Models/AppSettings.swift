@@ -16,16 +16,21 @@ final class AppSettings: ObservableObject {
     }
 
     @AppStorage("showTokenInMenuBar") var showTokenInMenuBar: Bool = true
-    @AppStorage("showCostInsteadOfTokens") var showCostInsteadOfTokens: Bool = true {
-        didSet { objectWillChange.send() }
+    // 菜单栏双层显示：上行 Token 量、下行金额。
+    // 注意：didSet 里的 objectWillChange.send() 必须异步分发（DispatchQueue.main.async），
+    // 若同步发送，SwiftUI 视图更新期间（如设置页 Toggle）会触发
+    // “Publishing changes from within view updates is not allowed”断言崩溃。
+    // 菜单栏 Token 是否压缩显示（12.3K），否则显示完整数字（12345）
+    @AppStorage("compressTokenInMenuBar") var compressTokenInMenuBar: Bool = true {
+        didSet { notifyChange() }
     }
 
     @AppStorage("omniroutePort") var omniroutePort: Int = 20128 {
-        didSet { objectWillChange.send() }
+        didSet { notifyChange() }
     }
 
     @AppStorage("omnirouteAPIKey") var omnirouteAPIKey: String = "sk-c4b1296a521c8ac2-243703-59cc5103" {
-        didSet { objectWillChange.send() }
+        didSet { notifyChange() }
     }
 
     @AppStorage("pollIntervalSeconds") var pollIntervalSeconds: Int = 15
@@ -35,15 +40,15 @@ final class AppSettings: ObservableObject {
 
     /// 启动 OmniBar 时自动拉起 omniroute（若未运行）
     @AppStorage("autoStartOnLaunch") var autoStartOnLaunch: Bool = true {
-        didSet { objectWillChange.send() }
+        didSet { notifyChange() }
     }
     /// omniroute 意外崩溃后自动重启
     @AppStorage("autoRestartOnCrash") var autoRestartOnCrash: Bool = true {
-        didSet { objectWillChange.send() }
+        didSet { notifyChange() }
     }
     /// 退出 OmniBar 时自动停止 omniroute
     @AppStorage("stopOnQuit") var stopOnQuit: Bool = true {
-        didSet { objectWillChange.send() }
+        didSet { notifyChange() }
     }
     /// 崩溃自动重启的最大连续尝试次数（防止无限重启循环）
     @AppStorage("restartRetryLimit") var restartRetryLimit: Int = 3
@@ -65,6 +70,15 @@ final class AppSettings: ObservableObject {
 
     var baseURL: URL {
         URL(string: "http://localhost:\(omniroutePort)")!
+    }
+
+    /// 通知非 SwiftUI 观察者（菜单栏、OmnirouteService 等）设置已变更。
+    /// 必须异步发送：同步发送会在 SwiftUI 视图更新期间触发
+    /// “Publishing changes from within view updates”断言导致崩溃。
+    private func notifyChange() {
+        DispatchQueue.main.async { [weak self] in
+            self?.objectWillChange.send()
+        }
     }
 
     private init() {}

@@ -8,13 +8,27 @@
 import Foundation
 import CryptoKit
 
-enum OmnirouteAPIError: Error {
-    /// HTTP 401 / 鉴权失败
+enum OmnirouteAPIError: Error, LocalizedError {
+    /// HTTP 401 / 403 鉴权失败
     case unauthorized
     case httpError(Int)
     case transport(Error)
     /// 网关没有对应的端点
     case endpointUnavailable
+
+    /// 提供可读描述，避免默认的 "The operation couldn't be completed…" 掩盖真实原因
+    var errorDescription: String? {
+        switch self {
+        case .unauthorized:
+            return "API 鉴权失败（401/403）"
+        case .httpError(let code):
+            return "网关返回错误状态码 \(code)"
+        case .transport(let error):
+            return "无法连接到网关：\(error.localizedDescription)"
+        case .endpointUnavailable:
+            return "网关不支持该数据接口"
+        }
+    }
 }
 
 final class OmnirouteAPIClient {
@@ -51,7 +65,21 @@ final class OmnirouteAPIClient {
         components.scheme = "http"
         components.host = "localhost"
         components.port = port
-        components.path = path
+        // 拆分 path 与 query：path 含 "?" 时必须放到 queryItems，
+        // 否则 URLComponents 会把 "?" 百分号编码（%3F），导致 404。
+        let parts = path.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        components.path = String(parts[0])
+        if parts.count > 1 {
+            let query = parts[1]
+            components.queryItems = query
+                .split(separator: "&", omittingEmptySubsequences: false)
+                .compactMap { pair in
+                    let kv = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                    guard let key = kv.first.map(String.init) else { return nil }
+                    let value = kv.count > 1 ? String(kv[1]) : ""
+                    return URLQueryItem(name: key, value: value)
+                }
+        }
 
         guard let url = components.url else {
             throw OmnirouteAPIError.transport(URLError(.badURL))
@@ -72,7 +100,8 @@ final class OmnirouteAPIClient {
         guard let http = response as? HTTPURLResponse else {
             throw OmnirouteAPIError.transport(URLError(.badServerResponse))
         }
-        if http.statusCode == 401 {
+        // 401 未提供 token；403 token 无效（omniroute 对无效 token 返回 403）
+        if http.statusCode == 401 || http.statusCode == 403 {
             throw OmnirouteAPIError.unauthorized
         }
         if http.statusCode == 404 || http.statusCode == 405 {
@@ -113,7 +142,7 @@ final class OmnirouteAPIClient {
         guard let http = response as? HTTPURLResponse else {
             throw OmnirouteAPIError.transport(URLError(.badServerResponse))
         }
-        if http.statusCode == 401 {
+        if http.statusCode == 401 || http.statusCode == 403 {
             throw OmnirouteAPIError.unauthorized
         }
         if http.statusCode == 404 || http.statusCode == 405 {
@@ -189,6 +218,30 @@ final class OmnirouteAPIClient {
         return resp.combos
     }
 
+    // MARK: - Prompt Compression
+
+    /// /api/settings/compression -> { enabled, defaultMode, ... }
+    /// enabled 为总开关；defaultMode 为压缩模式（off/lite/standard/aggressive/ultra）。
+    struct CompressionSettings: Codable {
+        let enabled: Bool
+        let defaultMode: String
+    }
+
+    /// 读取当前提示词压缩配置（只取 UI 需要的 enabled / defaultMode，其余字段忽略）。
+    func fetchCompressionSettings() async throws -> CompressionSettings {
+        try await request("/api/settings/compression")
+    }
+
+    /// 写入提示词压缩配置，返回网关确认后的最新状态。
+    /// - Parameters:
+    ///   - enabled: 是否启用压缩
+    ///   - defaultMode: 压缩模式（off/lite/standard/aggressive/ultra）
+    func setCompressionSettings(enabled: Bool, defaultMode: String) async throws -> CompressionSettings {
+        struct Body: Codable { let enabled: Bool; let defaultMode: String }
+        let body = try JSONEncoder().encode(Body(enabled: enabled, defaultMode: defaultMode))
+        return try await request("/api/settings/compression", method: "PATCH", body: body)
+    }
+
     /// 切换当前激活的 combo。
     /// omniroute 把"当前激活 combo"存在本地 SQLite 的 key_value 表
     /// (namespace='settings', key='activeCombo', value='"<name>"')，
@@ -246,6 +299,8 @@ final class OmnirouteAPIClient {
             let completionTokens: Int?
             let totalTokens: Int?
             let cost: Double?
+            let flexSavings: Double?
+            let flexUsageSavingsTokens: Int?
         }
         struct Summary: Codable {
             let totalCost: Double?
@@ -263,7 +318,7 @@ final class OmnirouteAPIClient {
 
         // 今日：取 dailyTrend 中与今天日期匹配的条目；若无匹配则用最后一条
         let today: Analytics = try await request("/api/usage/analytics?period=1d")
-        // 30 天：取汇总，用于"本月"列
+        // 30 天：从中筛选出「本月」的条目累加，避免把近 30 天全部算成本月开销
         let month: Analytics = try await request("/api/usage/analytics?period=30d")
 
         let cal = Calendar(identifier: .gregorian)
@@ -273,17 +328,16 @@ final class OmnirouteAPIClient {
             .first(where: { $0.date == todayStr })
             ?? (today.dailyTrend ?? []).last
 
-        let monthSummary = month.summary ?? Summary(
-            totalCost: 0, totalTokens: 0, promptTokens: 0,
-            completionTokens: 0, flexSavings: 0, flexUsageSavingsTokens: 0, totalRequests: 0
-        )
-
         let todayTokens = todayEntry?.totalTokens ?? 0
         let todayCost = Decimal(string: String(todayEntry?.cost ?? 0)) ?? 0
-        let monthTokens = monthSummary.totalTokens ?? 0
-        let monthCost = Decimal(string: String(monthSummary.totalCost ?? 0)) ?? 0
-        let savedTokens = monthSummary.flexUsageSavingsTokens ?? 0
-        let savedCost = Decimal(string: String(monthSummary.flexSavings ?? 0)) ?? 0
+
+        // 本月 = dailyTrend 中月份与当前月一致的条目累加
+        let monthPrefix = todayStr.prefix(7) // "2026-08"
+        let monthEntries = (month.dailyTrend ?? []).filter { ($0.date ?? "").hasPrefix(monthPrefix) }
+        let monthTokens = monthEntries.reduce(0) { $0 + ($1.totalTokens ?? 0) }
+        let monthCost = monthEntries.reduce(Decimal(0)) { $0 + (Decimal(string: String($1.cost ?? 0)) ?? 0) }
+        let savedTokens = monthEntries.reduce(0) { $0 + ($1.flexUsageSavingsTokens ?? 0) }
+        let savedCost = monthEntries.reduce(Decimal(0)) { $0 + (Decimal(string: String($1.flexSavings ?? 0)) ?? 0) }
         // 预算：omniroute 的 budget 需 apiKeyId，HTTP 不可得；暂用 0 表示未设置
         let budget: Decimal = 0
 
@@ -342,6 +396,10 @@ final class OmnirouteAPIClient {
     private static let isoDateFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withFullDate]
+        // 关键：API 的 dailyTrend 日期按本地时区（如 2026-08-02）。
+        // ISO8601DateFormatter 默认用 UTC，导致 todayStr/monthPrefix 与 API 错位一天，
+        // 使「今日」匹配到旧条目甚至全 0。必须显式用本地时区。
+        f.timeZone = .current
         return f
     }()
 }

@@ -59,6 +59,12 @@ final class OmnirouteService: ObservableObject {
     @Published private(set) var activeComboID: String? = nil
     @Published private(set) var usage: UsageStats = .init()
 
+    // MARK: 提示词压缩（网关为数据源，刷新时读取、用户改动时写回）
+    /// 是否启用提示词压缩（GET /api/settings/compression -> enabled）
+    @Published private(set) var compressionEnabled: Bool = false
+    /// 压缩模式：off / lite / standard / aggressive / ultra
+    @Published private(set) var compressionMode: String = "off"
+
     @Published var isOperationInProgress: Bool = false
     @Published var lastErrorMessage: String? = nil
     /// 最近一次数据刷新是否因 API 鉴权失败（401）。用于 UI 给出明确提示与跳转。
@@ -90,9 +96,15 @@ final class OmnirouteService: ObservableObject {
         settings.objectWillChange.map { _ in () }.eraseToAnyPublisher()
     }
 
+    /// 设置变化订阅的持有者（Combine sink 需强引用，否则订阅立即释放）
+    private var settingsCancellables: Set<AnyCancellable> = []
+    /// 上一次观测到的端口，用于识别端口变更
+    private var previousPort: Int
+
     init(settings: AppSettings = .shared) {
         self.settings = settings
         self.port = settings.omniroutePort
+        self.previousPort = settings.omniroutePort
         self.api = OmnirouteAPIClient(settings: settings)
         observeSettings()
     }
@@ -100,20 +112,25 @@ final class OmnirouteService: ObservableObject {
     // MARK: - Settings
 
     private func observeSettings() {
-        // 监听 settings 变化以刷新端口/连接信息
-        Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            var previousPort = self.settings.omniroutePort
-            for await _ in self.settings.objectWillChange.values {
+        // 监听 settings 变化以刷新端口/连接信息。
+        // 注意：不能用 for-await（AsyncPublisher）订阅 objectWillChange——SwiftUI 的
+        // UserDefaultObserver 会在视图更新期间（如设置页 Toggle 切换 @AppStorage）
+        // 同步发布变更，AsyncPublisher 同步接收会触发
+        // “Publishing changes from within view updates”断言崩溃。
+        // 必须改用 receive(on:) 异步跳转到主队列后再处理，彻底避开视图更新周期。
+        settings.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
                 let newPort = self.settings.omniroutePort
-                if newPort != previousPort {
-                    previousPort = newPort
+                if newPort != self.previousPort {
+                    self.previousPort = newPort
                     self.port = newPort
                     self.api.refreshSettings()
-                    await self.refreshStatus()
+                    Task { await self.refreshStatus() }
                 }
             }
-        }
+            .store(in: &settingsCancellables)
     }
     // MARK: - Lifecycle
 
@@ -224,6 +241,11 @@ final class OmnirouteService: ObservableObject {
             self.lastErrorMessage = nil
             if startedAt == nil {
                 startedAt = Date()
+            }
+            // 读取提示词压缩配置（旧版网关若无此端点则静默忽略，保留默认值）
+            if let cs = try? await api.fetchCompressionSettings() {
+                self.compressionEnabled = cs.enabled
+                self.compressionMode = cs.defaultMode
             }
         } catch OmnirouteAPIError.unauthorized {
             self.needsAuth = true
@@ -620,6 +642,35 @@ final class OmnirouteService: ObservableObject {
             return String(data: data, encoding: .utf8)
         } catch {
             return nil
+        }
+    }
+
+    // MARK: - Prompt Compression
+
+    /// 设置提示词压缩（总开关 + 模式），写回网关后同步本地状态。
+    /// - Parameters:
+    ///   - enabled: 是否启用压缩
+    ///   - mode: 压缩模式（off/lite/standard/aggressive/ultra）
+    /// - Returns: 是否成功
+    @discardableResult
+    func setCompression(enabled: Bool, mode: String) async -> Bool {
+        do {
+            let cs = try await api.setCompressionSettings(enabled: enabled, defaultMode: mode)
+            self.compressionEnabled = cs.enabled
+            self.compressionMode = cs.defaultMode
+            self.needsAuth = false
+            self.lastErrorMessage = nil
+            return true
+        } catch OmnirouteAPIError.unauthorized {
+            self.needsAuth = true
+            self.lastErrorMessage = "API 鉴权失败：请在偏好设置 → 连接 中填写正确的 API Key"
+            return false
+        } catch OmnirouteAPIError.endpointUnavailable {
+            self.lastErrorMessage = "当前网关版本不支持提示词压缩（/api/settings/compression 不可用）"
+            return false
+        } catch {
+            self.lastErrorMessage = "设置提示词压缩失败：\(error.localizedDescription)"
+            return false
         }
     }
 

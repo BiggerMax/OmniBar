@@ -51,98 +51,94 @@ final class StatusItemManager: NSObject {
     private func renderTitle() {
         guard let button = statusItem.button else { return }
 
-        var title = ""
         if settings.showTokenInMenuBar {
-            title = settings.showCostInsteadOfTokens
-                ? omnirouteService.usage.todayCostText
-                : omnirouteService.usage.todayTokensText + " tok"
+            // 双层显示：上行 Token 量，下行金额
+            let tokens = settings.compressTokenInMenuBar
+                ? omnirouteService.usage.todayTokensText
+                : "\(omnirouteService.usage.todayTokens)"
+            button.image = Self.menuBarTwoLineImage(top: tokens, bottom: omnirouteService.usage.todayCostText)
+        } else {
+            // 关闭用量显示：退回只显示状态圆点，避免菜单栏出现空白占位
+            button.image = Self.statusBarIcon(for: omnirouteService.status)
         }
-
-        button.image = Self.statusBarIcon(for: omnirouteService.status)
-        button.title = title
-        button.imagePosition = title.isEmpty ? .imageOnly : .imageLeft
-        button.font = .systemFont(ofSize: NSFont.systemFontSize(for: .small), weight: .medium)
+        button.imagePosition = .imageOnly
+        button.title = ""
         button.toolTip = "OmniBar — \(omnirouteService.status.label)"
     }
 
-    /// 绘制菜单栏图标：路由符号 + 右下角状态圆点
-    /// 非 template 图像（需要保留状态色），因此自行适配深浅色模式
+    /// 各状态图标只渲染一次并缓存（renderTitle 每秒调用，避免反复分配位图）。
+    private static var iconCache: [ServiceStatus: NSImage] = [:]
+
+    /// 绘制菜单栏图标：自绘实心圆，整体按服务状态着色（运行绿 / 停止灰 / 错误红 / 未知黄）。
+    /// 用 lockFocus 写入位图缓存，保证菜单栏按钮必定能绘制出来，不会出现图标空白占位。
+    /// 画布保持标准 18×18 菜单栏图标尺寸（与其他图标垂直对齐），圆点直径 14pt、
+    /// 四周仅 2pt 透明边距，与系统图标的视觉密度一致，避免前后出现“空隙”观感。
     private static func statusBarIcon(for status: ServiceStatus) -> NSImage {
+        if let cached = iconCache[status] { return cached }
+        let color = statusColor(for: status)
         let size = NSSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: false) { _ in
-            // 使用通用的路由符号，确保在 macOS 14+ 上可用
-            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-            let symbolName = "point.3.connected.trianglepath"
-            guard let symbol = NSImage(systemSymbolName: symbolName,
-                                       accessibilityDescription: "OmniBar")?
-                .withSymbolConfiguration(config) else { 
-                print("⚠️ SF Symbol '\(symbolName)' 不可用，使用备用方案")
-                return Self.drawFallbackIcon(in: NSRect(x: 0, y: 0, width: 18, height: 18), status: status)
-            }
-
-            // 跟随系统深浅色，保证在两种模式下都清晰
-            let tint = NSColor.labelColor
-            let rect = NSRect(x: 0, y: 1, width: 16, height: 16)
-            symbol.isTemplate = true
-            tint.set()
-            symbol.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 0.9)
-            rect.fill(using: .sourceAtop)
-
-            // 右下角状态点
-            let dotColor: NSColor
-            switch status {
-            case .running: dotColor = .systemGreen
-            case .stopped: dotColor = .systemGray
-            case .error:   dotColor = .systemRed
-            case .unknown: dotColor = .systemYellow
-            }
-            let dotRect = NSRect(x: 11.5, y: 0.5, width: 6, height: 6)
-            // 描一圈背景色边，让圆点在符号上仍可辨识
-            NSColor.windowBackgroundColor.setFill()
-            NSBezierPath(ovalIn: dotRect.insetBy(dx: -1, dy: -1)).fill()
-            dotColor.setFill()
-            NSBezierPath(ovalIn: dotRect).fill()
-            return true
-        }
-        
-        // 备用方案：如果 SF Symbol 不可用，绘制简单的路由图标
-        let fallbackImage = NSImage(size: size, flipped: false) { _ in
-            return Self.drawFallbackIcon(in: NSRect(x: 0, y: 0, width: 18, height: 18), status: status)
-        }
-        fallbackImage.isTemplate = false
-        return fallbackImage
+        let image = NSImage(size: size)
+        image.isTemplate = false
+        image.lockFocus()
+        color.setFill()
+        let dotDiameter: CGFloat = 14
+        let inset = (size.width - dotDiameter) / 2
+        NSBezierPath(ovalIn: NSRect(x: inset, y: inset, width: dotDiameter, height: dotDiameter)).fill()
+        image.unlockFocus()
+        iconCache[status] = image
+        return image
     }
-    
-    /// 备用图标绘制方案（当 SF Symbol 不可用时使用）
-    private static func drawFallbackIcon(in rect: NSRect, status: ServiceStatus) -> Bool {
-        // 绘制简单的三角形路由符号
-        let dotColor: NSColor
-        switch status {
-        case .running: dotColor = .systemGreen
-        case .stopped: dotColor = .systemGray
-        case .error:   dotColor = .systemRed
-        case .unknown: dotColor = .systemYellow
+
+    /// 双层菜单栏文本缓存：renderTitle 每秒调用，但用量仅在轮询刷新时变化，
+    /// 按 (top, bottom) 复用位图，避免每秒重绘。
+    private static var twoLineImageCache: [String: NSImage] = [:]
+
+    /// 双层菜单栏文本：上行 Token 量、下行金额。
+    /// 绘制为 template 位图（文字用黑色，AppKit 只取 alpha 并按菜单栏配色渲染），
+    /// 深浅色模式都正确，点击高亮时自动反白。
+    private static func menuBarTwoLineImage(top: String, bottom: String) -> NSImage {
+        let key = "\(top)|\(bottom)"
+        if let cached = twoLineImageCache[key] { return cached }
+
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 8.5, weight: .medium)
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.black]
+        let topAttr = NSAttributedString(string: top, attributes: attrs)
+        let bottomAttr = NSAttributedString(string: bottom, attributes: attrs)
+        let topSize = topAttr.size()
+        let bottomSize = bottomAttr.size()
+
+        // 总高控制在 20pt：菜单栏按钮内容区约 20pt，过高会被 imageScaling 缩放变糊
+        let height: CGFloat = 20
+        let lineStep = height / 2
+        let width = ceil(max(topSize.width, bottomSize.width)) + 4
+
+        let image = NSImage(size: NSSize(width: width, height: height))
+        image.isTemplate = true
+        image.lockFocus()
+        // 注意：lockFocus 上下文是非翻转的（原点左下）。绝不能手动 scaleBy(y:-1) 翻转，
+        // 否则文本系统会双重补偿，导致文字镜像/倒置。
+        // draw(in:) 会自动处理方向，按上/下两个半区分别绘制即可。
+        topAttr.draw(in: NSRect(x: (width - topSize.width) / 2, y: lineStep,
+                                width: topSize.width, height: lineStep))
+        bottomAttr.draw(in: NSRect(x: (width - bottomSize.width) / 2, y: 0,
+                                   width: bottomSize.width, height: lineStep))
+        image.unlockFocus()
+
+        // 防止缓存无限增长：超过 100 张时整体清空（重建成本极低）
+        if twoLineImageCache.count >= 100 {
+            twoLineImageCache.removeAll(keepingCapacity: true)
         }
-        
-        // 中心三角形
-        let trianglePath = NSBezierPath()
-        let center = NSPoint(x: rect.midX, y: rect.midY + 2)
-        let size: CGFloat = 8
-        trianglePath.move(to: NSPoint(x: center.x, y: center.y + size))
-        trianglePath.line(to: NSPoint(x: center.x - size, y: center.y - size/2))
-        trianglePath.line(to: NSPoint(x: center.x + size, y: center.y - size/2))
-        trianglePath.close()
-        dotColor.setFill()
-        trianglePath.fill()
-        
-        // 右下角状态点
-        let dotRect = NSRect(x: rect.maxX - 6, y: rect.minY + 1, width: 5, height: 5)
-        NSColor.windowBackgroundColor.setFill()
-        NSBezierPath(ovalIn: dotRect.insetBy(dx: -1, dy: -1)).fill()
-        dotColor.setFill()
-        NSBezierPath(ovalIn: dotRect).fill()
-        
-        return true
+        twoLineImageCache[key] = image
+        return image
+    }
+
+    private static func statusColor(for status: ServiceStatus) -> NSColor {
+        switch status {
+        case .running: return .systemGreen
+        case .stopped: return .systemGray
+        case .error:   return .systemRed
+        case .unknown: return .systemYellow
+        }
     }
 
     private func observeService() {
@@ -390,13 +386,13 @@ final class StatusItemManager: NSObject {
     @objc private func openSettings() {
         // 先关闭 popover，避免设置窗口与 popover 重叠
         closePopoverPanel()
-        let settingsView = SettingsView(settings: settings)
+        let settingsView = SettingsView(settings: settings, service: self.omnirouteService)
         let hosting = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hosting)
         window.title = "OmniBar 设置"
         window.styleMask = [.titled, .closable, .miniaturizable]
-        // 设置窗口固定深色外观：保持深色玻璃风格
-        window.appearance = NSAppearance(named: .darkAqua)
+        // 设置窗口与 Popover 统一：浅色玻璃外观
+        window.appearance = NSAppearance(named: .aqua)
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
