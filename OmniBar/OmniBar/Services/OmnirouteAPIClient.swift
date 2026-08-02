@@ -27,12 +27,17 @@ final class OmnirouteAPIClient {
         settings.omnirouteAPIKey
     }
 
-    init(settings: AppSettings) {
-        self.settings = settings
+    convenience init(settings: AppSettings) {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 5
         config.timeoutIntervalForResource = 10
-        self.session = URLSession(configuration: config)
+        self.init(settings: settings, session: URLSession(configuration: config))
+    }
+
+    /// 可注入自定义 URLSession（供测试注入 mock session 使用）。
+    init(settings: AppSettings, session: URLSession) {
+        self.settings = settings
+        self.session = session
     }
 
     func refreshSettings() {
@@ -41,7 +46,7 @@ final class OmnirouteAPIClient {
 
     // MARK: - Generic Request
 
-    private func request<T: Decodable>(_ path: String, method: String = "GET", body: Data? = nil, includeCliToken: Bool = false) async throws -> T {
+    func request<T: Decodable>(_ path: String, method: String = "GET", body: Data? = nil, includeCliToken: Bool = false) async throws -> T {
         var components = URLComponents()
         components.scheme = "http"
         components.host = "localhost"
@@ -82,7 +87,7 @@ final class OmnirouteAPIClient {
 
     /// 发送请求并验证 2xx，不解析响应体（用于 PATCH/DELETE 等 204 端点）。
     @discardableResult
-    private func requestVoid(_ path: String, method: String = "GET", body: Data? = nil, includeCliToken: Bool = false) async throws -> Void {
+    func requestVoid(_ path: String, method: String = "GET", body: Data? = nil, includeCliToken: Bool = false) async throws -> Void {
         var components = URLComponents()
         components.scheme = "http"
         components.host = "localhost"

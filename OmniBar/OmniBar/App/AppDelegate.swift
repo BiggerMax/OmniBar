@@ -14,6 +14,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemManager: StatusItemManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 测试宿主（XCTest hosted test）环境下跳过业务逻辑，
+        // 避免 OmnirouteService 轮询 / 网络请求干扰单元测试执行。
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return
+        }
+
         // 启动时隐藏 Dock 图标
         NSApp.setActivationPolicy(.accessory)
 
