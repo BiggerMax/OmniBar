@@ -307,6 +307,21 @@ final class OmnirouteService: ObservableObject {
             return false
         }
 
+        // 若存在 launchd LaunchAgent（com.omniroute.autostart），优先 bootstrap 让 launchd 托管。
+        // 这样启动后由 launchd 守护，且与「停止时 bootout」对称，避免手动拉起进程与 launchd 冲突。
+        if Self.bootstrapOmnirouteLaunchAgent() {
+            // 等待 launchd 拉起，端口就绪即成功
+            for _ in 0..<30 {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                if await checkProcessAlive() {
+                    await refreshStatus()
+                    lastErrorMessage = nil
+                    return status == .running
+                }
+            }
+            // launchd 拉起失败，落到手动启动
+        }
+
         do {
             let task = Process()
             // omniroute 是 node shim，必须经由 shell 继承完整 PATH，否则找不到 node
@@ -378,6 +393,10 @@ final class OmnirouteService: ObservableObject {
     }
 
     private func stopInternal() async -> Bool {
+        // 关键：omniroute 可能被 launchd LaunchAgent（com.omniroute.autostart）托管，
+        // 直接杀进程会被 launchd 立即拉起（KeepAlive=true）。必须先卸载 LaunchAgent。
+        let agentUnloaded = Self.unloadOmnirouteLaunchAgent()
+
         guard let currentPID = await findPID() else {
             status = .stopped
             pid = nil
@@ -422,6 +441,13 @@ final class OmnirouteService: ObservableObject {
         // refreshStatus 通过 TCP 探测，若端口已关闭则判定为 stopped
         if status == .running {
             // 兜底：直接标记为 stopped，避免 UI 误显示
+            status = .stopped
+            pid = nil
+            startedAt = nil
+            uptime = 0
+        }
+        // LaunchAgent 已成功卸载但进程还在（理论上极罕见），再补一轮
+        if status == .running, agentUnloaded {
             status = .stopped
             pid = nil
             startedAt = nil
@@ -531,6 +557,56 @@ final class OmnirouteService: ObservableObject {
 
     /// 同步执行命令并捕获 stdout
     private nonisolated func runCapture(_ path: String, _ args: [String]) -> String? {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: path)
+        task.arguments = args
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = FileHandle.nullDevice
+        do {
+            try task.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            task.waitUntilExit()
+            return String(data: data, encoding: .utf8)
+        } catch {
+            return nil
+        }
+    }
+
+    /// omniroute 可能被第三方 LaunchAgent（com.omniroute.autostart）托管（KeepAlive=true），
+    /// 直接杀进程会被 launchd 立即拉起。停止前必须卸载该 LaunchAgent。
+    /// - Returns: 是否存在并已卸载
+    private static func unloadOmnirouteLaunchAgent() -> Bool {
+        let label = "com.omniroute.autostart"
+        let uid = getuid()
+        // 检查是否已注册
+        let check = runSync("/bin/launchctl", ["print", "gui/\(uid)/\(label)"])
+        guard let check, !check.isEmpty else { return false }
+        // 卸载（bootout 对已注册服务返回 0；未注册返回非 0，忽略即可）
+        _ = runSync("/bin/launchctl", ["bootout", "gui/\(uid)/\(label)"])
+        return true
+    }
+
+    /// 启动时若 LaunchAgent 存在，尝试 bootstrap 让 launchd 接管（KeepAlive 自动守护），
+    /// 与系统自启机制一致，避免 OmniBar 手动拉起与 launchd 托管冲突。
+    private static func bootstrapOmnirouteLaunchAgent() -> Bool {
+        let label = "com.omniroute.autostart"
+        let uid = getuid()
+        let plistPath = (NSHomeDirectory() as NSString)
+            .appendingPathComponent("Library/LaunchAgents/com.omniroute.autostart.plist")
+        guard FileManager.default.fileExists(atPath: plistPath) else { return false }
+        // 已注册则无需重复
+        if let check = runSync("/bin/launchctl", ["print", "gui/\(uid)/\(label)"]), !check.isEmpty {
+            return true
+        }
+        // bootstrap 成功才返回 true（失败返回非 0 输出为空）
+        let out = runSync("/bin/launchctl", ["bootstrap", "gui/\(uid)", plistPath])
+        return out != nil
+    }
+
+    /// 同步执行命令（忽略输出，返回退出码是否为 0）
+    @discardableResult
+    private static func runSync(_ path: String, _ args: [String]) -> String? {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: path)
         task.arguments = args
@@ -669,6 +745,33 @@ final class OmnirouteService: ObservableObject {
             providerOperationMessage = "删除失败：\(error.localizedDescription)"
             return false
         }
+    }
+
+    /// 批量删除多个 Provider 连接。逐项调用删除接口，统计成功/失败数量。
+    func deleteProviders(_ providers: [Provider]) async -> Int {
+        guard !providerOperationInProgress, !providers.isEmpty else { return 0 }
+        providerOperationInProgress = true
+        defer { providerOperationInProgress = false }
+
+        var success = 0
+        for provider in providers {
+            do {
+                try await api.deleteProvider(id: provider.id)
+                success += 1
+            } catch OmnirouteAPIError.unauthorized {
+                self.needsAuth = true
+                providerOperationMessage = "API 鉴权失败：请在偏好设置 → 连接 中填写正确的 API Key"
+                break
+            } catch OmnirouteAPIError.endpointUnavailable {
+                providerOperationMessage = "网关未提供删除接口（DELETE /api/providers/{id} 不可用）"
+                break
+            } catch {
+                // 单条失败不中断，继续删剩余项；最后汇总提示
+            }
+        }
+        providerOperationMessage = "已删除 \(success)/\(providers.count) 个连接"
+        await refreshStatus()
+        return success
     }
 
     /// 清除最近一次 provider 操作的提示信息（UI 主动消费后调用）。

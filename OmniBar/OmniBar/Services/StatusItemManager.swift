@@ -70,10 +70,15 @@ final class StatusItemManager: NSObject {
     private static func statusBarIcon(for status: ServiceStatus) -> NSImage {
         let size = NSSize(width: 18, height: 18)
         let image = NSImage(size: size, flipped: false) { _ in
+            // 使用通用的路由符号，确保在 macOS 14+ 上可用
             let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-            guard let symbol = NSImage(systemSymbolName: "point.3.connected.trianglepath.dotted",
+            let symbolName = "point.3.connected.trianglepath"
+            guard let symbol = NSImage(systemSymbolName: symbolName,
                                        accessibilityDescription: "OmniBar")?
-                .withSymbolConfiguration(config) else { return true }
+                .withSymbolConfiguration(config) else { 
+                print("⚠️ SF Symbol '\(symbolName)' 不可用，使用备用方案")
+                return Self.drawFallbackIcon(in: NSRect(x: 0, y: 0, width: 18, height: 18), status: status)
+            }
 
             // 跟随系统深浅色，保证在两种模式下都清晰
             let tint = NSColor.labelColor
@@ -99,9 +104,45 @@ final class StatusItemManager: NSObject {
             NSBezierPath(ovalIn: dotRect).fill()
             return true
         }
-        // 含状态色，不能设为 template，否则会被系统抹成单色
-        image.isTemplate = false
-        return image
+        
+        // 备用方案：如果 SF Symbol 不可用，绘制简单的路由图标
+        let fallbackImage = NSImage(size: size, flipped: false) { _ in
+            return Self.drawFallbackIcon(in: NSRect(x: 0, y: 0, width: 18, height: 18), status: status)
+        }
+        fallbackImage.isTemplate = false
+        return fallbackImage
+    }
+    
+    /// 备用图标绘制方案（当 SF Symbol 不可用时使用）
+    private static func drawFallbackIcon(in rect: NSRect, status: ServiceStatus) -> Bool {
+        // 绘制简单的三角形路由符号
+        let dotColor: NSColor
+        switch status {
+        case .running: dotColor = .systemGreen
+        case .stopped: dotColor = .systemGray
+        case .error:   dotColor = .systemRed
+        case .unknown: dotColor = .systemYellow
+        }
+        
+        // 中心三角形
+        let trianglePath = NSBezierPath()
+        let center = NSPoint(x: rect.midX, y: rect.midY + 2)
+        let size: CGFloat = 8
+        trianglePath.move(to: NSPoint(x: center.x, y: center.y + size))
+        trianglePath.line(to: NSPoint(x: center.x - size, y: center.y - size/2))
+        trianglePath.line(to: NSPoint(x: center.x + size, y: center.y - size/2))
+        trianglePath.close()
+        dotColor.setFill()
+        trianglePath.fill()
+        
+        // 右下角状态点
+        let dotRect = NSRect(x: rect.maxX - 6, y: rect.minY + 1, width: 5, height: 5)
+        NSColor.windowBackgroundColor.setFill()
+        NSBezierPath(ovalIn: dotRect.insetBy(dx: -1, dy: -1)).fill()
+        dotColor.setFill()
+        NSBezierPath(ovalIn: dotRect).fill()
+        
+        return true
     }
 
     private func observeService() {
@@ -265,7 +306,8 @@ final class StatusItemManager: NSObject {
         )
         panel.isFloatingPanel = true
         panel.level = .popUpMenu
-        panel.hasShadow = true
+        // 关闭系统面板阴影，避免透明玻璃外围出现一圈黑影（控制中心无硬阴影）
+        panel.hasShadow = false
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hidesOnDeactivate = false
@@ -273,15 +315,33 @@ final class StatusItemManager: NSObject {
         panel.becomesKeyOnlyIfNeeded = true
         panel.ignoresMouseEvents = false
         panel.acceptsMouseMovedEvents = true
+        // 面板固定浅色外观：白色透明玻璃风格（配合 .preferredColorScheme(.light)）
+        panel.appearance = NSAppearance(named: .aqua)
 
         let content = PopoverPanel(service: omnirouteService, settings: settings)
         let hosting = NSHostingView(rootView: content)
         hosting.translatesAutoresizingMaskIntoConstraints = false
+        // 背景由下方 NSVisualEffectView 提供；PopoverPanel 根视图不绘制背景（见其 body），
+        // 因此 NSHostingView 内容透明，毛玻璃能透上来。
 
         // 外层普通容器 + 裁剪，防止 SwiftUI intrinsic 溢出改变实际布局宽度
         let container = ClippingContainerView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
+
+        // macOS 原生控制中心同款毛玻璃：NSVisualEffectView(.popover) + behindWindow 混合，
+        // 模糊背后内容并透视，交给 SwiftUI 的是完全透明的 SwiftUI 层。
+        let effectView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
+        effectView.material = .popover
+        effectView.blendingMode = .behindWindow
+        effectView.state = .active
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+
+        container.addSubview(effectView)
         container.addSubview(hosting)
         NSLayoutConstraint.activate([
+            effectView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            effectView.topAnchor.constraint(equalTo: container.topAnchor),
+            effectView.widthAnchor.constraint(equalToConstant: panelWidth),
+            effectView.heightAnchor.constraint(equalToConstant: panelHeight),
             hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             hosting.topAnchor.constraint(equalTo: container.topAnchor),
             hosting.widthAnchor.constraint(equalToConstant: panelWidth),
@@ -335,6 +395,8 @@ final class StatusItemManager: NSObject {
         let window = NSWindow(contentViewController: hosting)
         window.title = "OmniBar 设置"
         window.styleMask = [.titled, .closable, .miniaturizable]
+        // 设置窗口固定深色外观：保持深色玻璃风格
+        window.appearance = NSAppearance(named: .darkAqua)
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -347,6 +409,8 @@ final class StatusItemManager: NSObject {
 }
 
 /// 固定尺寸的裁剪容器：屏蔽子视图（SwiftUI hosting view）的 intrinsic size 影响
+/// 并在 layer 层裁切圆角——毛玻璃（NSVisualEffectView）不受 SwiftUI clipShape 约束，
+/// 必须在此用 layer.cornerRadius 裁出面板圆角。
 final class ClippingContainerView: NSView {
     override var isFlipped: Bool { true }
 
@@ -361,5 +425,7 @@ final class ClippingContainerView: NSView {
         super.layout()
         wantsLayer = true
         layer?.masksToBounds = true
+        // 与 PopoverPanel 的 DT.Radius.card(12) 一致，裁切毛玻璃圆角
+        layer?.cornerRadius = 12
     }
 }

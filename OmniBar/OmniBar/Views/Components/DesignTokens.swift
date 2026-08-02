@@ -6,37 +6,83 @@
 //
 
 import SwiftUI
+import AppKit
 
 enum DT {
     // MARK: - 颜色
+    // 所有颜色均为动态色（跟随 appearance 自动切换浅/深色值）。
+    // Popover 面板强制 .light 浅色玻璃；设置窗口强制 .dark 深色玻璃。
     enum Color {
-        // 容器与表面（ClashMac 接近黑的冷色深底）
-        static let surface = SwiftUI.Color(red: 0.114, green: 0.114, blue: 0.122)         // #1D1D1F
-        static let surfaceContainer = SwiftUI.Color(red: 0.145, green: 0.145, blue: 0.165) // #25252A
-        static let surfaceElevated = SwiftUI.Color.white.opacity(0.06)                       // 白色/6 浅层
-        static let stroke = SwiftUI.Color.white.opacity(0.08)                                // 描边
-        static let strokeVariant = SwiftUI.Color.white.opacity(0.05)                         // 次级描边
-        // 文字
-        static let textPrimary = SwiftUI.Color.white                                         // 主文字
-        static let textSecondary = SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68)         // #949AAE
-        static let textTertiary = SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68).opacity(0.6)
-        static let textLabel = SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68).opacity(0.8)
-        // 主品牌（ClashMac 靛蓝/紫罗兰蓝）
-        static let accent = SwiftUI.Color(red: 0.44, green: 0.47, blue: 0.94)                 // #7078F0
-        static let accentSoft = SwiftUI.Color(red: 0.44, green: 0.47, blue: 0.94).opacity(0.20)
-        // 辅助亮蓝（ClashMac 部分高亮）
-        static let accentBlue = SwiftUI.Color(red: 0.22, green: 0.50, blue: 0.97)             // #3880F8
-        static let warningSoft = SwiftUI.Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.15)
-        // 状态
-        static let success = SwiftUI.Color(red: 0.06, green: 0.73, blue: 0.51)              // #10B981
-        static let warning = SwiftUI.Color(red: 0.96, green: 0.62, blue: 0.04)             // #F59E0B
-        static let danger = SwiftUI.Color(red: 0.82, green: 0.20, blue: 0.16)              // #D13329
-        static let offline = SwiftUI.Color(red: 0.39, green: 0.45, blue: 0.55)              // #64748B
+        // ---- 表面（light: 高透明白色玻璃，透视下方内容 / dark: 近黑深底）----
+        static let surface = dynamicColor(
+            light: SwiftUI.Color.white.opacity(0.10),
+            dark: SwiftUI.Color(red: 0.114, green: 0.114, blue: 0.122)
+        )
+        static let surfaceContainer = dynamicColor(
+            light: SwiftUI.Color.white.opacity(0.14),
+            dark: SwiftUI.Color(red: 0.145, green: 0.145, blue: 0.165)
+        )
+        // 卡片浅层（light: 半透明白底卡片 / dark: 白 9% 浅层）
+        static let surfaceElevated = dynamicColor(
+            light: SwiftUI.Color.white.opacity(0.28),
+            dark: SwiftUI.Color.white.opacity(0.09)
+        )
+        // 描边（light: 黑 12% / dark: 白 10%）
+        static let stroke = dynamicColor(
+            light: SwiftUI.Color.black.opacity(0.14),
+            dark: SwiftUI.Color.white.opacity(0.10)
+        )
+        static let strokeVariant = dynamicColor(
+            light: SwiftUI.Color.black.opacity(0.09),
+            dark: SwiftUI.Color.white.opacity(0.07)
+        )
+        // ---- 文字（light: 深色 / dark: 浅色）----
+        static let textPrimary = dynamicColor(
+            light: SwiftUI.Color(red: 0.11, green: 0.11, blue: 0.12),   // #1D1D1F
+            dark: SwiftUI.Color.white
+        )
+        static let textSecondary = dynamicColor(
+            light: SwiftUI.Color(red: 0.36, green: 0.38, blue: 0.45),   // #5C6173
+            dark: SwiftUI.Color(red: 0.72, green: 0.74, blue: 0.80)
+        )
+        static let textTertiary = dynamicColor(
+            light: SwiftUI.Color(red: 0.48, green: 0.50, blue: 0.58),   // #7A7F94
+            dark: SwiftUI.Color(red: 0.58, green: 0.60, blue: 0.68).opacity(0.85)
+        )
+        static let textLabel = dynamicColor(
+            light: SwiftUI.Color(red: 0.36, green: 0.38, blue: 0.45).opacity(0.9),
+            dark: SwiftUI.Color(red: 0.72, green: 0.74, blue: 0.80).opacity(0.9)
+        )
+        // ---- 主品牌（两套都保持可读）----
+        static let accent = SwiftUI.Color(red: 0.40, green: 0.43, blue: 0.88)   // 深色底略亮，浅色底略深
+        static let accentSoft = dynamicColor(
+            light: SwiftUI.Color(red: 0.40, green: 0.43, blue: 0.88).opacity(0.14),
+            dark: SwiftUI.Color(red: 0.44, green: 0.47, blue: 0.94).opacity(0.20)
+        )
+        // 辅助亮蓝
+        static let accentBlue = SwiftUI.Color(red: 0.22, green: 0.50, blue: 0.97) // #3880F8
+        static let warningSoft = dynamicColor(
+            light: SwiftUI.Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.18),
+            dark: SwiftUI.Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.15)
+        )
+        // ---- 状态（浅色下加深饱和以保证对比）----
+        static let success = SwiftUI.Color(red: 0.03, green: 0.58, blue: 0.41)  // #09A469
+        static let warning = SwiftUI.Color(red: 0.82, green: 0.52, blue: 0.02)  // #D18505
+        static let danger = SwiftUI.Color(red: 0.72, green: 0.17, blue: 0.13)   // #B82B21
+        static let offline = SwiftUI.Color(red: 0.42, green: 0.48, blue: 0.58)  // #6B7A94
         // 透明占位
         static let clear = SwiftUI.Color.clear
-    }
 
-    // MARK: - 间距
+        /// 构造跟随 appearance 的动态颜色
+        private static func dynamicColor(light: SwiftUI.Color, dark: SwiftUI.Color) -> SwiftUI.Color {
+            let nsLight = NSColor(light)
+            let nsDark = NSColor(dark)
+            let dynamic = NSColor(name: nil) { appearance in
+                appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? nsDark : nsLight
+            }
+            return SwiftUI.Color(nsColor: dynamic)
+        }
+    }
     enum Space {
         static let xxs: CGFloat = 2
         static let xs: CGFloat = 4
@@ -65,49 +111,35 @@ enum DT {
         static let bodyMedium = SwiftUI.Font.system(size: 13, weight: .medium)
         static let bodySemibold = SwiftUI.Font.system(size: 13, weight: .semibold)
         // 标签
-        static let label = SwiftUI.Font.system(size: 10, weight: .bold)
+        static let label = SwiftUI.Font.system(size: 11, weight: .bold)
         static let sectionLabel = SwiftUI.Font.system(size: 11, weight: .bold)
         static let micro = SwiftUI.Font.system(size: 10, weight: .medium)
         // 数字（JetBrains Mono → system monospaced）
         static let mono = SwiftUI.Font.system(size: 12, weight: .regular, design: .monospaced)
         static let monoMedium = SwiftUI.Font.system(size: 12, weight: .medium, design: .monospaced)
-        static let monoSmall = SwiftUI.Font.system(size: 10, weight: .regular, design: .monospaced)
-        static let monoTiny = SwiftUI.Font.system(size: 9, weight: .regular, design: .monospaced)
+        static let monoSmall = SwiftUI.Font.system(size: 11, weight: .regular, design: .monospaced)
+        static let monoTiny = SwiftUI.Font.system(size: 10, weight: .medium, design: .monospaced)
         static let caption = SwiftUI.Font.system(size: 11, weight: .regular)
     }
 }
 
 // MARK: - 液态玻璃（Liquid Glass）
 
-/// 液态玻璃面板背景：ClashX 深色毛玻璃，纯高斯模糊、无彩色渐变。
-/// 用作 PopoverPanel 的整块背景。
-struct LiquidGlassPanel: View {
-    var body: some View {
-        ZStack {
-            // 高斯模糊
-            Rectangle().fill(.ultraThinMaterial)
-            // 深色调，营造 ClashX 深色面板质感
-            Rectangle().fill(Color.black.opacity(0.45))
-            // 极淡蓝色微光，呼应 ClashX 蓝
-            Rectangle().fill(DT.Color.accent.opacity(0.05))
-        }
-    }
-}
-
-/// 液态玻璃卡片底：深色半透明 + 细白描边，纯毛玻璃质感（无渐变）。
-/// 让 DCard / DRow 等容器呈现 ClashX 深色玻璃质感。
+/// 液态玻璃卡片底：跟随主题的半透明玻璃 + 细描边。
+/// 浅色 = 白底卡片；深色 = 深色半透明卡片。
 private struct LiquidGlassCard: ViewModifier {
     var cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
             .background(
-                Rectangle().fill(Color.white.opacity(0.07))
+                Rectangle().fill(colorScheme == .light ? Color.white.opacity(0.22) : Color.white.opacity(0.09))
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                    .strokeBorder(colorScheme == .light ? Color.black.opacity(0.12) : Color.white.opacity(0.16), lineWidth: 0.8)
             )
     }
 }
@@ -232,7 +264,8 @@ struct StatusPill: View {
             .font(DT.Font.label)
             .foregroundStyle(color)
             .padding(.horizontal, DT.Space.m)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(color.opacity(0.10)))
+            .padding(.vertical, 3)
+            .background(Capsule().fill(color.opacity(0.16)))
+            .overlay(Capsule().strokeBorder(color.opacity(0.35), lineWidth: 0.5))
     }
 }

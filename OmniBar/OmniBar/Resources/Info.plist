@@ -24,6 +24,8 @@
 	<string>14.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>OmniBar uses Apple Events to manage the Omniroute process and open system preferences.</string>
 	<key>NSHighResolutionCapable</key>

@@ -100,7 +100,7 @@ struct StatusCard: View {
                 .foregroundStyle(DT.Color.textSecondary)
                 .tracking(1.0)
             Text(value)
-                .font(DT.Font.mono)
+                .font(DT.Font.monoMedium)
                 .foregroundStyle(accent ? DT.Color.accent : DT.Color.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)

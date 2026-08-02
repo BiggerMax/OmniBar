@@ -48,6 +48,8 @@ struct SettingsView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous))
         .shadow(color: .black.opacity(0.5), radius: 25, x: 0, y: 25)
+        // 设置窗口强制深色，保持深色玻璃风格
+        .preferredColorScheme(.dark)
     }
 
     // MARK: 侧边栏

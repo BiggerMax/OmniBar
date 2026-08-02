@@ -37,13 +37,12 @@ struct PopoverPanel: View {
             actionBar
         }
         .frame(width: panelWidth, height: 520)
-        .background(LiquidGlassPanel())
-        .overlay(
-            RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                .strokeBorder(DT.Color.stroke, lineWidth: 1)
-        )
+        // 背景完全交给 AppKit 层 NSVisualEffectView（StatusItemManager 中）：
+        // 这里不再绘制任何背景，确保 hosting 层透明、透出控制中心同款毛玻璃。
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous))
-        .shadow(color: .black.opacity(0.5), radius: 15, x: 0, y: 10)
+        .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 8)
+        // Popover 强制浅色：白色透明玻璃风格
+        .preferredColorScheme(.light)
     }
 
     // MARK: - 内容区（路由切换）
@@ -90,18 +89,18 @@ struct PopoverPanel: View {
                 } else if let msg = service.updateMessage, service.updateAvailable {
                     updateAvailableBanner(msg)
                 }
-                ProviderList(providers: service.providers) { provider in
+                UsageSummary(usage: service.usage)
+                ProviderList(providers: service.providers, service: service) { provider in
                     withAnimation(.easeInOut(duration: 0.22)) { route = .provider(provider) }
                 }
                 ComboSelector(service: service) { combo in
                     withAnimation(.easeInOut(duration: 0.22)) { route = .combo(combo) }
                 }
-                UsageSummary(usage: service.usage)
             }
             // 关键：硬钉死内容宽度，任何子视图都不能把 ScrollView 横向撑爆
             .frame(width: contentWidth, alignment: .leading)
             .padding(DT.Space.xl)
-            .padding(.bottom, 56) // 给底部 Action Bar 留位置
+            .padding(.bottom, 32) // 给底部 Action Bar 留位置（收紧与路由策略的距离）
         }
         .scrollDisabled(false)
         .scrollIndicators(.hidden)
@@ -136,7 +135,7 @@ struct PopoverPanel: View {
         }
         .padding(.horizontal, DT.Space.xl)
         .padding(.vertical, DT.Space.l)
-        .background(DT.Color.surface.opacity(0.8).background(.ultraThinMaterial))
+        // 背景透明：毛玻璃由 AppKit 层 NSVisualEffectView 统一提供，保持控制中心通透感
         .overlay(
             Rectangle().fill(DT.Color.stroke).frame(height: 0.5),
             alignment: .bottom
@@ -194,7 +193,7 @@ struct PopoverPanel: View {
         }
         .frame(height: 56)
         .padding(.leading, DT.Space.xl)
-        .background(DT.Color.surface.opacity(0.7).background(.ultraThinMaterial))
+        // 背景透明：毛玻璃由 AppKit 层 NSVisualEffectView 统一提供，保持控制中心通透感
         .overlay(
             Rectangle().fill(DT.Color.stroke).frame(height: 0.5),
             alignment: .top

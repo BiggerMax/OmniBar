@@ -97,7 +97,7 @@ final class OmnirouteAPIClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if !apiKey.isEmpty {
-            request.setValue("Bearer \\(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
         if includeCliToken, let token = cliToken {
             request.setValue(token, forHTTPHeaderField: "x-omniroute-cli-token")
@@ -313,7 +313,7 @@ final class OmnirouteAPIClient {
     }
 
     func testProvider(id: String) async throws -> ProviderTestResult {
-        try await request("/api/providers/\\(id)/test", method: "POST")
+        try await request("/api/providers/\(id)/test", method: "POST")
     }
 
     /// PATCH /api/providers/{id} 更新连接（isActive 启用/停用，priority 优先级），返回 204
@@ -326,12 +326,12 @@ final class OmnirouteAPIClient {
         body.isActive = isActive
         body.priority = priority
         let data = try JSONEncoder().encode(body)
-        try await requestVoid("/api/providers/\\(id)", method: "PATCH", body: data)
+        try await requestVoid("/api/providers/\(id)", method: "PATCH", body: data)
     }
 
     /// DELETE /api/providers/{id} 删除连接
     func deleteProvider(id: String) async throws {
-        try await requestVoid("/api/providers/\\(id)", method: "DELETE")
+        try await requestVoid("/api/providers/\(id)", method: "DELETE")
     }
 
     private static let isoDateFormatter: ISO8601DateFormatter = {
