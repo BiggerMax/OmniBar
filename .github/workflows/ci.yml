@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project OmniBar/OmniBar.xcodeproj \
+            -scheme OmniBar \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            build
+
+      - name: Run Tests
+        run: |
+          xcodebuild test \
+            -project OmniBar/OmniBar.xcodeproj \
+            -scheme OmniBar \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            test
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult
+          path: |
+            build/Logs/Test/*.xcresult
+          if-no-files-found: ignore
