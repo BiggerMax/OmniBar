@@ -20,6 +20,10 @@ struct ProviderList: View {
     @State private var isDeleting = false
     @State private var pendingConfirm = false
 
+    /// 折叠模式：默认展示前 3 个 provider，多余折叠
+    private static let collapsedLimit = 3
+    @State private var isExpanded = false
+
     var body: some View {
         // 对齐 HTML：Provider 区块无外层容器卡片，行本身是 bg-white/5 独立卡片
         // section 间距 space-3(12px)，行间距 space-2(8px)
@@ -29,10 +33,78 @@ struct ProviderList: View {
                 emptyView
             } else {
                 LazyVStack(alignment: .leading, spacing: DT.Space.l) {
-                    ForEach(groups.indices, id: \.self) { index in
-                        groupSection(groups[index])
+                    ForEach(visibleRows) { row in
+                        rowView(row)
+                    }
+                    if providers.count > Self.collapsedLimit {
+                        showMoreButton
                     }
                 }
+            }
+        }
+    }
+
+    /// 折叠模式：扁平化为「分组标题 / provider 行」序列；折叠时仅保留前 3 个 provider 行
+    private var visibleRows: [Row] {
+        let all = flattenedRows
+        if isExpanded || providers.count <= Self.collapsedLimit {
+            return all
+        }
+        var result: [Row] = []
+        var shown = 0
+        for row in all {
+            switch row {
+            case .header:
+                result.append(row)
+            case .provider:
+                if shown < Self.collapsedLimit {
+                    shown += 1
+                    result.append(row)
+                } else {
+                    return result
+                }
+            }
+        }
+        return result
+    }
+
+    private var flattenedRows: [Row] {
+        var rows: [Row] = []
+        for group in groups {
+            rows.append(.header(group.title, group.isConnectionName, activeCount(in: group.providers), group.providers.count))
+            for p in group.providers {
+                rows.append(.provider(p))
+            }
+        }
+        return rows
+    }
+
+    /// 折叠切换按钮：显示剩余数量 / 收起
+    private var showMoreButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.22)) { isExpanded.toggle() }
+        } label: {
+            HStack(spacing: DT.Space.xs) {
+                Text(isExpanded ? "收起" : "显示全部 \(providers.count - Self.collapsedLimit) 个")
+                    .font(DT.Font.micro)
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(DT.Color.accent)
+            .padding(.horizontal, DT.Space.xs)
+            .padding(.vertical, DT.Space.xs)
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private enum Row: Identifiable {
+        case header(String, Bool, Int, Int)
+        case provider(Provider)
+
+        var id: String {
+            switch self {
+            case .header(let title, let isRaw, _, _): return "h-\(isRaw ? "raw" : "type")-\(title)"
+            case .provider(let p): return "p-\(p.id)"
             }
         }
     }
@@ -75,28 +147,31 @@ struct ProviderList: View {
         return h
     }
 
-    /// 单组：服务商标题（可读名 + 活跃/总数）+ 组内连接行
-    private func groupSection(_ group: (title: String, isConnectionName: Bool, providers: [Provider])) -> some View {
-        VStack(alignment: .leading, spacing: DT.Space.s) {
-            HStack(spacing: DT.Space.s) {
-                Text(group.isConnectionName ? group.title : displayName(group.title))
-                    .font(DT.Font.micro)
-                    .foregroundStyle(DT.Color.textLabel)
-                    .lineLimit(1)
-                Spacer()
-                Text("\(activeCount(in: group.providers))/\(group.providers.count)")
-                    .font(DT.Font.monoSmall)
-                    .foregroundStyle(DT.Color.textSecondary)
-            }
-            .padding(.horizontal, DT.Space.xs)
-            .padding(.top, DT.Space.s)
-
-            LazyVStack(spacing: DT.Space.m) {
-                ForEach(group.providers) { provider in
-                    providerRow(provider)
-                }
-            }
+    /// 单行渲染：分组标题 或 provider 行
+    @ViewBuilder
+    private func rowView(_ row: Row) -> some View {
+        switch row {
+        case .header(let title, let isConnectionName, let active, let total):
+            groupHeader(title: title, isConnectionName: isConnectionName, active: active, total: total)
+        case .provider(let provider):
+            providerRow(provider)
         }
+    }
+
+    /// 单组：服务商标题（可读名 + 活跃/总数）+ 组内连接行
+    private func groupHeader(title: String, isConnectionName: Bool, active: Int, total: Int) -> some View {
+        HStack(spacing: DT.Space.s) {
+            Text(isConnectionName ? title : displayName(title))
+                .font(DT.Font.micro)
+                .foregroundStyle(DT.Color.textLabel)
+                .lineLimit(1)
+            Spacer()
+            Text("\(active)/\(total)")
+                .font(DT.Font.monoSmall)
+                .foregroundStyle(DT.Color.textSecondary)
+        }
+        .padding(.horizontal, DT.Space.xs)
+        .padding(.top, DT.Space.s)
     }
 
     /// 把 "siliconflow" / "openai-compatible-chat" 转成可读名

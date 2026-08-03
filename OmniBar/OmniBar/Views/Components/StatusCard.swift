@@ -16,8 +16,59 @@ struct StatusCard: View {
             VStack(spacing: DT.Space.l) {
                 topRow
                 metricsGrid
+                tunnelRow
             }
         }
+    }
+
+    // MARK: - 隧道开关
+    private var tunnelRow: some View {
+        HStack(spacing: DT.Space.m) {
+            Image(systemName: "network")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(service.tunnelRunning ? DT.Color.success : DT.Color.textTertiary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("隧道")
+                    .font(DT.Font.statLabel)
+                    .foregroundStyle(DT.Color.textLabel)
+                    .tracking(1.0)
+                Text(tunnelSubtitle)
+                    .font(DT.Font.micro)
+                    .foregroundStyle(DT.Color.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { service.tunnelRunning },
+                set: { newValue in
+                    Task { _ = await service.setTunnel(enabled: newValue) }
+                }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .tint(DT.Color.accent)
+            .disabled(service.status != .running || service.tunnelOperationInProgress)
+        }
+        .padding(.horizontal, DT.Space.s)
+        .padding(.vertical, DT.Space.s)
+        .background(
+            RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                .fill(DT.Color.surfaceElevated.opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                .strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5)
+        )
+    }
+
+    private var tunnelSubtitle: String {
+        if service.status != .running { return "服务未运行" }
+        if service.tunnelOperationInProgress { return "正在切换…" }
+        if service.tunnelRunning {
+            return service.tunnelPublicURL
+        }
+        return "点击开启公网访问"
     }
 
     private var topRow: some View {

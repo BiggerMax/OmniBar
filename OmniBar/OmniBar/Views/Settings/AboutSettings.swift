@@ -59,7 +59,7 @@ struct AboutSettings: View {
                 .overlay(Capsule().strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5))
 
             // GitHub 链接
-            Link(destination: URL(string: "https://github.com/omnibar/omnibar")!) {
+            Link(destination: URL(string: "https://github.com/BiggerMax/OmniBar")!) {
                 HStack {
                     HStack(spacing: DT.Space.m) {
                         Circle()

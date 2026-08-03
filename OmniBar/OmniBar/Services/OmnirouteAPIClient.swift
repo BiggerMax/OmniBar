@@ -365,6 +365,11 @@ final class OmnirouteAPIClient {
         try await request("/api/system/version")
     }
 
+    /// /api/usage/call-logs?limit=N -> [CallLog] 最近调用记录（按时间倒序）
+    func fetchRecentCalls(limit: Int = 1) async throws -> [CallLog] {
+        try await request("/api/usage/call-logs?limit=\(limit)")
+    }
+
     /// /api/providers/{id}/test -> { valid, error, latencyMs, ... } 重新检测单一连接健康度
     struct ProviderTestResult: Codable {
         let valid: Bool?

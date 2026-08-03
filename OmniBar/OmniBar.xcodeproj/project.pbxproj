@@ -24,6 +24,7 @@
 		AA000015 /* UsageSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* UsageSummary.swift */; };
 		AA000022 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100024 /* DesignTokens.swift */; };
 		AA000027 /* DetailCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100027 /* DetailCards.swift */; };
+		AA000028 /* CallLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100028 /* CallLog.swift */; };
 		AA000016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016 /* SettingsView.swift */; };
 		AA000017 /* GeneralSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017 /* GeneralSettings.swift */; };
 		AA000018 /* ConnectionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100018 /* ConnectionSettings.swift */; };
@@ -73,6 +74,7 @@
 		AA100023 /* OmniBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OmniBar.entitlements; sourceTree = "<group>"; };
 		AA100024 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		AA100027 /* DetailCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailCards.swift; sourceTree = "<group>"; };
+		AA100028 /* CallLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallLog.swift; sourceTree = "<group>"; };
 		BB100000 /* OmniBarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmniBarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB100001 /* OmniBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmniBarTests.swift; sourceTree = "<group>"; };
 		BB100002 /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 				AA100008 /* Combo.swift */,
 				AA100009 /* UsageStats.swift */,
 				AA100010 /* ServiceStatus.swift */,
+				AA100028 /* CallLog.swift */,
 				AA100006 /* AppSettings.swift */,
 			);
 			path = Models;
@@ -304,6 +307,7 @@
 				AA000013 /* ProviderList.swift in Sources */,
 				AA000014 /* ComboSelector.swift in Sources */,
 				AA000015 /* UsageSummary.swift in Sources */,
+				AA000028 /* CallLog.swift in Sources */,
 				AA000022 /* DesignTokens.swift in Sources */,
 				AA000027 /* DetailCards.swift in Sources */,
 				AA000016 /* SettingsView.swift in Sources */,
@@ -398,7 +402,7 @@
 		AA500020 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = OmniBar/Resources/OmniBar.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
@@ -425,7 +429,7 @@
 		AA500021 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = OmniBar/Resources/OmniBar.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";

@@ -58,6 +58,8 @@ final class OmnirouteService: ObservableObject {
     @Published private(set) var combos: [Combo] = []
     @Published private(set) var activeComboID: String? = nil
     @Published private(set) var usage: UsageStats = .init()
+    /// 最近一次真实模型调用（GET /api/usage/call-logs），用于「当前调用」展示
+    @Published private(set) var latestCall: CallLog? = nil
 
     // MARK: 提示词压缩（网关为数据源，刷新时读取、用户改动时写回）
     /// 是否启用提示词压缩（GET /api/settings/compression -> enabled）
@@ -69,6 +71,20 @@ final class OmnirouteService: ObservableObject {
     @Published var lastErrorMessage: String? = nil
     /// 最近一次数据刷新是否因 API 鉴权失败（401）。用于 UI 给出明确提示与跳转。
     @Published private(set) var needsAuth: Bool = false
+
+    // MARK: Cloudflare Tunnel（cloudflared 命名隧道，代理 /v1 到公网）
+    /// 隧道进程是否在运行
+    @Published private(set) var tunnelRunning: Bool = false
+    /// 隧道公网地址（来自设置，仅展示）
+    @Published var tunnelPublicURL: String {
+        didSet { settings.tunnelPublicURL = tunnelPublicURL }
+    }
+    /// 隧道启停操作是否进行中
+    @Published private(set) var tunnelOperationInProgress: Bool = false
+    /// 隧道最近一次操作的提示信息
+    @Published private(set) var tunnelMessage: String? = nil
+    /// 由本 App 拉起的 cloudflared 进程
+    private var tunnelTask: Process?
 
     /// 当前正在执行的操作（用于 UI 精确定位到具体按钮做加载动画）
     @Published private(set) var runningOperation: ServiceOperation? = nil
@@ -105,6 +121,7 @@ final class OmnirouteService: ObservableObject {
         self.settings = settings
         self.port = settings.omniroutePort
         self.previousPort = settings.omniroutePort
+        self.tunnelPublicURL = settings.tunnelPublicURL
         self.api = OmnirouteAPIClient(settings: settings)
         observeSettings()
     }
@@ -177,6 +194,7 @@ final class OmnirouteService: ObservableObject {
             uptime = 0
             providers = []
             combos = []
+            latestCall = nil
             needsAuth = false
             lastErrorMessage = nil
 
@@ -205,6 +223,7 @@ final class OmnirouteService: ObservableObject {
         wasRunning = true
         status = .running
         pid = await findPID()
+        refreshTunnelStatus()
 
         // 并行获取 providers / combos / usage / system version
         do {
@@ -212,6 +231,7 @@ final class OmnirouteService: ObservableObject {
             async let c = api.fetchCombos()
             async let u = api.fetchUsageStats()
             async let v = api.fetchSystemVersion()
+            async let calls = api.fetchRecentCalls(limit: 10)
 
             let (providers, combos) = try await (p, c)
             self.providers = providers
@@ -219,6 +239,10 @@ final class OmnirouteService: ObservableObject {
             // usage 获取失败不阻断主流程（部分网关可能未启用 analytics）
             if let stats = try? await u {
                 self.usage = stats
+            }
+            // 最近调用：失败不阻断，仅保留上次值
+            if let logs = try? await calls {
+                self.latestCall = logs.first(where: { !$0.isTestCall })
             }
             // 版本信息：失败不阻断，仅保持上次值
             if let ver = try? await v {
@@ -643,6 +667,143 @@ final class OmnirouteService: ObservableObject {
         } catch {
             return nil
         }
+    }
+
+    // MARK: - Cloudflare Tunnel
+
+    /// 刷新隧道运行状态（轮询时调用）。启动时同时将公网地址写回设置。
+    func refreshTunnelStatus() {
+        tunnelRunning = isCloudflaredRunning()
+    }
+
+    /// 检测 cloudflared 是否正以「目标配置文件 + 隧道名」在运行
+    private func isCloudflaredRunning() -> Bool {
+        let bin = settings.cloudflaredBinaryPath
+        let cfg = settings.cloudflaredConfigPath
+        guard !bin.isEmpty, !cfg.isEmpty else { return false }
+        let output = runCapture("/bin/ps", ["-axo", "command="]) ?? ""
+        return output
+            .split(separator: "\n")
+            .contains { line in
+                let l = line.lowercased()
+                return l.contains("cloudflared")
+                    && l.contains("tunnel")
+                    && l.contains("run")
+                    && l.contains(cfg.lowercased())
+            }
+    }
+
+    /// 启用/停用 Cloudflare Tunnel。
+    /// - Parameters:
+    ///   - enabled: true 启动隧道，false 停止隧道
+    /// - Returns: 是否成功
+    @discardableResult
+    func setTunnel(enabled: Bool) async -> Bool {
+        guard !tunnelOperationInProgress else { return false }
+        tunnelOperationInProgress = true
+        defer { tunnelOperationInProgress = false }
+        if enabled {
+            return await startTunnel()
+        } else {
+            return await stopTunnel()
+        }
+    }
+
+    private func startTunnel() async -> Bool {
+        let bin = settings.cloudflaredBinaryPath
+        let cfg = settings.cloudflaredConfigPath
+        let name = settings.cloudflaredTunnelName
+        guard FileManager.default.isExecutableFile(atPath: bin) else {
+            tunnelMessage = "启动失败：找不到 cloudflared（\(bin)），请在偏好设置 → 连接 中修正路径"
+            return false
+        }
+        guard FileManager.default.fileExists(atPath: cfg) else {
+            tunnelMessage = "启动失败：找不到隧道配置 \(cfg)"
+            return false
+        }
+        if isCloudflaredRunning() {
+            tunnelMessage = "隧道已在运行"
+            tunnelRunning = true
+            return true
+        }
+
+        do {
+            let task = Process()
+            // cloudflared 是 go 二进制，可直接执行；经 shell 继承 PATH
+            task.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            let cmd = "exec \(shellQuote(bin)) tunnel --config \(shellQuote(cfg)) run \(shellQuote(name))"
+            task.arguments = ["-lc", cmd]
+
+            var env = ProcessInfo.processInfo.environment
+            let extraPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+            env["PATH"] = (extraPaths + [env["PATH"] ?? ""]).joined(separator: ":")
+            task.environment = env
+            task.standardOutput = FileHandle.nullDevice
+            task.standardError = FileHandle.nullDevice
+            task.standardInput = FileHandle.nullDevice
+
+            try task.run()
+            tunnelTask = task
+
+            // 轮询等待隧道就绪（最多 12 秒）
+            for _ in 0..<24 {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                if isCloudflaredRunning() {
+                    tunnelRunning = true
+                    tunnelMessage = "隧道已启用（\(settings.tunnelPublicURL)）"
+                    return true
+                }
+            }
+            tunnelMessage = "启动超时：cloudflared 在 12 秒内未就绪，请检查配置与网络"
+            return false
+        } catch {
+            tunnelMessage = "启动失败：\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    private func stopTunnel() async -> Bool {
+        let cfg = settings.cloudflaredConfigPath
+        // 找到匹配该配置的 cloudflared 进程并终止
+        let output = runCapture("/bin/ps", ["-axo", "pid=,command="]) ?? ""
+        var killed = false
+        for line in output.split(separator: "\n") {
+            let l = line.lowercased()
+            guard l.contains("cloudflared"), l.contains("tunnel"), l.contains(cfg.lowercased()) else { continue }
+            guard let pid = Int(line.split(separator: " ").first ?? "") else { continue }
+            _ = runKill(pid: pid, signal: "TERM")
+            killed = true
+        }
+        // 等 2 秒确认退出；未退出则强杀
+        if killed {
+            for _ in 0..<4 {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                if !isCloudflaredRunning() { break }
+            }
+            if isCloudflaredRunning() {
+                let again = runCapture("/bin/ps", ["-axo", "pid=,command="]) ?? ""
+                for line in again.split(separator: "\n") {
+                    let l = line.lowercased()
+                    guard l.contains("cloudflared"), l.contains("tunnel"), l.contains(cfg.lowercased()) else { continue }
+                    guard let pid = Int(line.split(separator: " ").first ?? "") else { continue }
+                    _ = runKill(pid: pid, signal: "KILL")
+                }
+            }
+        }
+        tunnelTask = nil
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        tunnelRunning = isCloudflaredRunning()
+        if !tunnelRunning {
+            tunnelMessage = "隧道已停用"
+            return true
+        }
+        tunnelMessage = "停止失败：隧道进程仍在运行"
+        return false
+    }
+
+    /// 清除最近一次隧道操作的提示信息。
+    func clearTunnelMessage() {
+        tunnelMessage = nil
     }
 
     // MARK: - Prompt Compression

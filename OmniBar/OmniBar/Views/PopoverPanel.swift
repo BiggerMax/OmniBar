@@ -95,7 +95,7 @@ struct PopoverPanel: View {
                 } else if let msg = service.updateMessage, service.updateAvailable {
                     updateAvailableBanner(msg)
                 }
-                UsageSummary(usage: service.usage)
+                UsageSummary(usage: service.usage, call: service.latestCall, isRunning: service.status == .running)
                 ProviderList(providers: service.providers, service: service) { provider in
                     withAnimation(.easeInOut(duration: 0.22)) { route = .provider(provider) }
                 }

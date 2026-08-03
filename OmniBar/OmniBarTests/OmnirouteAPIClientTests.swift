@@ -217,5 +217,32 @@ final class OmnirouteAPIClientTests: XCTestCase {
         let url = try XCTUnwrap(MockURLProtocol.lastRequest?.url)
         XCTAssertEqual(url.path, "/api/settings/compression")
     }
+
+    // MARK: - Call Logs
+
+    func testFetchRecentCallsDecodesAndFiltersTestCalls() async throws {
+        let json = """
+        [
+          {"id":"2","timestamp":"2026-08-03T05:36:10.639Z","method":"POST","path":"/v1/chat/completions",
+           "status":200,"model":"deepseek-chat","provider":"deepseek","account":"main",
+           "duration":1200,"tokens":{"in":100,"out":50}},
+          {"id":"1","timestamp":"2026-08-03T05:36:05.290Z","method":"POST","path":"/api/providers/test",
+           "status":200,"model":"connection-test","provider":"qoder","account":"main-2","duration":617}
+        ]
+        """
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer \(self.apiKey)")
+            return (try self.response(status: 200, for: "/api/usage/call-logs"), Data(json.utf8))
+        }
+        let calls = try await client.fetchRecentCalls(limit: 2)
+        XCTAssertEqual(calls.count, 2)
+        XCTAssertEqual(calls.first?.model, "deepseek-chat")
+        XCTAssertEqual(calls.first?.provider, "deepseek")
+        XCTAssertEqual(calls.first?.isTestCall, false)
+        XCTAssertTrue(calls.last?.isTestCall ?? false)
+
+        let url = try XCTUnwrap(MockURLProtocol.lastRequest?.url)
+        XCTAssertEqual(url.path, "/api/usage/call-logs")
+    }
 }
 

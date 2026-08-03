@@ -36,6 +36,21 @@ final class AppSettings: ObservableObject {
     @AppStorage("pollIntervalSeconds") var pollIntervalSeconds: Int = 15
     @AppStorage("omnirouteBinaryPath") var omnirouteBinaryPath: String = AppSettings.detectOmnirouteBinary()
 
+    // MARK: - Cloudflare Tunnel（代理 localhost:port/v1 到公网）
+
+    /// cloudflared 可执行文件路径
+    @AppStorage("cloudflaredBinaryPath") var cloudflaredBinaryPath: String = "/opt/homebrew/bin/cloudflared"
+    /// cloudflared 命名隧道配置文件
+    @AppStorage("cloudflaredConfigPath") var cloudflaredConfigPath: String = AppSettings.defaultCloudflaredConfig()
+    /// cloudflared 隧道名（run <name>）
+    @AppStorage("cloudflaredTunnelName") var cloudflaredTunnelName: String = "openclaw-web"
+    /// 隧道公网地址（仅展示）
+    @AppStorage("tunnelPublicURL") var tunnelPublicURL: String = "https://api.biggermax.xyz"
+
+    static func defaultCloudflaredConfig() -> String {
+        NSHomeDirectory() + "/.cloudflared/config.yml"
+    }
+
     // MARK: - 全生命周期托管
 
     /// 启动 OmniBar 时自动拉起 omniroute（若未运行）

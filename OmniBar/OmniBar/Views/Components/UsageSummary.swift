@@ -9,6 +9,9 @@ import SwiftUI
 
 struct UsageSummary: View {
     let usage: UsageStats
+    /// 最近一次真实模型调用（合并到网格中的小卡片）
+    var call: CallLog? = nil
+    var isRunning: Bool = true
 
     private let columns = [GridItem(.flexible(), spacing: DT.Space.l), GridItem(.flexible(), spacing: DT.Space.l)]
 
@@ -33,12 +36,60 @@ struct UsageSummary: View {
                               subtitle: budgetRemainingText,
                               valueColor: overBudget ? DT.Color.danger : nil)
                 }
+                currentCallCard
             }
             // 全宽 6pt 预算进度条（有预算才显示）
             if usage.hasBudget {
                 progressBar
             }
         }
+    }
+
+    /// 当前调用小卡片：模型 + 提供商/连接 + 耗时/状态
+    private var currentCallCard: some View {
+        VStack(alignment: .leading, spacing: DT.Space.xs) {
+            HStack(spacing: DT.Space.xs) {
+                Image(systemName: call?.isSuccess == true ? "checkmark.circle.fill" : "waveform")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(call?.isSuccess == true ? DT.Color.success : DT.Color.textLabel)
+                Text("当前调用")
+                    .font(DT.Font.statLabel)
+                    .foregroundStyle(DT.Color.textLabel)
+                    .tracking(1)
+            }
+            if let call {
+                Text(call.displayModel)
+                    .font(DT.Font.statNumber)
+                    .foregroundStyle(call.isSuccess ? DT.Color.textPrimary : DT.Color.danger)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .minimumScaleFactor(0.5)
+                Text("\(call.displayProvider) · \(call.durationText)")
+                    .font(DT.Font.micro)
+                    .foregroundStyle(DT.Color.textTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else {
+                Text(isRunning ? "暂无调用" : "服务未运行")
+                    .font(DT.Font.statNumber)
+                    .foregroundStyle(DT.Color.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Text("—")
+                    .font(DT.Font.micro)
+                    .foregroundStyle(DT.Color.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DT.Space.l)
+        .background(
+            RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                .fill(DT.Color.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                .strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5)
+        )
     }
 
     private var budgetRemainingText: String {
