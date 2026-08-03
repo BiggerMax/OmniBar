@@ -38,27 +38,48 @@ struct ProviderList: View {
     }
 
     // MARK: - 按服务商分组
-    private var groups: [(type: String, providers: [Provider])] {
-        // 保持原始顺序：合并相同服务商类型的连接，避免打乱展示次序
-        var result: [(type: String, providers: [Provider])] = []
+    private var groups: [(title: String, isConnectionName: Bool, providers: [Provider])] {
+        // 保持原始顺序：合并相同服务商类型的连接，避免打乱展示次序。
+        // 通用类型（openai-compatible-chat 等）连接的真实厂商由其上游 baseURL 决定，
+        // 因此按 baseURL 主机名单独成组（如 api.deepseek.com → deepseek.com）；
+        // 特定类型（siliconflow / command-code 等）则按 provider 类型归并。
+        var result: [(title: String, isConnectionName: Bool, providers: [Provider])] = []
         var indexById: [String: Int] = [:]
         for p in providers {
-            let key = p.providerTypeShort
+            let key = groupKey(for: p)
+            // 通用类型使用「原始标题」（主机名或连接名），不做类型 slug 的标题化转换
+            let isRaw = key != p.providerTypeShort
             if let i = indexById[key] {
                 result[i].providers.append(p)
             } else {
                 indexById[key] = result.count
-                result.append((key, [p]))
+                result.append((key, isRaw, [p]))
             }
         }
         return result
     }
 
+    /// 通用类型（openai-compatible-chat 等）连接的真实厂商由其上游 baseURL 决定，
+    /// 因此按 baseURL 主机名分组（如 https://api.deepseek.com/v1 → deepseek.com）；
+    /// baseURL 缺失时回退到连接名（name）。特定类型按 provider 类型归并。
+    private func groupKey(for p: Provider) -> String {
+        guard p.providerTypeShort.lowercased().contains("openai-compatible") else {
+            return p.providerTypeShort
+        }
+        guard let base = p.baseURL, let host = URL(string: base)?.host, !host.isEmpty else {
+            return p.displayName
+        }
+        var h = host
+        if h.hasPrefix("api.") { h = String(h.dropFirst(4)) }
+        else if h.hasPrefix("www.") { h = String(h.dropFirst(5)) }
+        return h
+    }
+
     /// 单组：服务商标题（可读名 + 活跃/总数）+ 组内连接行
-    private func groupSection(_ group: (type: String, providers: [Provider])) -> some View {
+    private func groupSection(_ group: (title: String, isConnectionName: Bool, providers: [Provider])) -> some View {
         VStack(alignment: .leading, spacing: DT.Space.s) {
             HStack(spacing: DT.Space.s) {
-                Text(displayName(group.type))
+                Text(group.isConnectionName ? group.title : displayName(group.title))
                     .font(DT.Font.micro)
                     .foregroundStyle(DT.Color.textLabel)
                     .lineLimit(1)
