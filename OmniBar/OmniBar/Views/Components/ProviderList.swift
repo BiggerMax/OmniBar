@@ -255,10 +255,16 @@ private struct ProviderRowView: View {
 
                 Spacer(minLength: DT.Space.s)
 
-                // 右侧：状态胶囊 + 进入指示，gap-3；chevron 用于进入大卡片
-                HStack(spacing: DT.Space.l) {
-                    // 状态胶囊：对齐 HTML .health-badge，颜色随状态（绿/黄/红）
-                    StatusPill(text: provider.healthLabel, color: provider.healthColor)
+                // 右侧：健康圆点 + 状态文字 + 进入指示（ClashMac 低对比行样式）
+                HStack(spacing: DT.Space.s) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(provider.healthColor)
+                            .frame(width: 6, height: 6)
+                        Text(provider.healthLabel)
+                            .font(DT.Font.micro)
+                            .foregroundStyle(provider.healthColor)
+                    }
                     if !isEditing {
                         // 进入指示
                         Image(systemName: "chevron.right")
@@ -271,11 +277,13 @@ private struct ProviderRowView: View {
             .padding(.vertical, DT.Space.m)
             .background(
                 RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                    .fill(isSelected ? DT.Color.accent.opacity(0.12) : DT.Color.surfaceElevated)
+                    .fill(isSelected ? DT.Color.accent.opacity(0.18)
+                          : (isHovering ? Color.white.opacity(0.10) : DT.Color.surfaceElevated))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                    .strokeBorder(isHovering ? DT.Color.accent.opacity(0.28) : (isSelected ? DT.Color.accent.opacity(0.4) : DT.Color.strokeVariant), lineWidth: 0.5)
+                    .strokeBorder(isSelected ? DT.Color.accent.opacity(0.5)
+                                   : (isHovering ? DT.Color.stroke : DT.Color.strokeVariant), lineWidth: 0.5)
             )
         }
         .buttonStyle(PlainRowButtonStyle())

@@ -10,7 +10,6 @@ import SwiftUI
 struct StatusCard: View {
     @ObservedObject var service: OmnirouteService
     var onCheckUpdate: () -> Void = {}
-    @State private var isPressed = false
 
     var body: some View {
         DCard(padding: DT.Space.xl) {
@@ -19,15 +18,6 @@ struct StatusCard: View {
                 metricsGrid
             }
         }
-        // 对齐 HTML：卡片按压时整体轻微缩小（active:scale-[0.99]）
-        .scaleEffect(isPressed ? 0.99 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: isPressed)
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in if !isPressed { isPressed = true } }
-                .onEnded { _ in isPressed = false }
-        )
     }
 
     private var topRow: some View {
@@ -85,18 +75,19 @@ struct StatusCard: View {
         }
     }
 
+    // MARK: - 指标区（ClashMac bento 风格：小标签 + 大号等宽数字）
     private var metricsGrid: some View {
         HStack(spacing: DT.Space.l) {
-            metric(label: "PORT", value: "\(service.port)", ratio: 0.30)
-            metric(label: "PID", value: service.pid.map(String.init) ?? "—", ratio: 0.30)
-            metric(label: "UPTIME", value: formatUptime(service.uptime), accent: true, ratio: 0.40)
+            metric(label: "PORT", value: "\(service.port)")
+            metric(label: "PID", value: service.pid.map(String.init) ?? "—")
+            metric(label: "UPTIME", value: formatUptime(service.uptime), accent: true)
         }
     }
 
-    private func metric(label: String, value: String, accent: Bool = false, ratio: CGFloat = 0.33) -> some View {
+    private func metric(label: String, value: String, accent: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(DT.Font.micro)
+                .font(DT.Font.statLabel)
                 .foregroundStyle(DT.Color.textSecondary)
                 .tracking(1.0)
             Text(value)

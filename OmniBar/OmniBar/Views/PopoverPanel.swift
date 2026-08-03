@@ -3,7 +3,7 @@
 //  OmniBar
 //
 //  主面板：顶栏 / 内容 / 底部 Action Bar
-//  1:1 还原 Stitch 设计：340 宽玻璃面板
+//  ClashMac 27 暗色玻璃风格：340 宽深炭面板
 //
 
 import SwiftUI
@@ -20,8 +20,9 @@ struct PopoverPanel: View {
     }
     @State private var route: Route = .list
 
-    /// 面板总宽
-    private let panelWidth: CGFloat = 340
+    /// 面板总宽（统一从 DT.Layout 读取）
+    private let panelWidth: CGFloat = DT.Layout.panelWidth
+    private let panelHeight: CGFloat = DT.Layout.panelHeight
     /// 内容区实际可用宽度 = 面板宽 - 左右 padding(16*2)
     private var contentWidth: CGFloat { panelWidth - DT.Space.xl * 2 }
 
@@ -31,18 +32,23 @@ struct PopoverPanel: View {
             header
             // 内容区：根据路由在「列表」与「详情大卡片」之间切换
             content
-                .frame(width: panelWidth, height: 424)
+                .frame(width: panelWidth, height: DT.Layout.contentHeight)
                 .clipped()
             // 底部固定 Action Bar
             actionBar
         }
-        .frame(width: panelWidth, height: 520)
-        // 背景完全交给 AppKit 层 NSVisualEffectView（StatusItemManager 中）：
-        // 这里不再绘制任何背景，确保 hosting 层透明、透出控制中心同款毛玻璃。
-        .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous))
-        .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 8)
-        // Popover 强制浅色：白色透明玻璃风格
-        .preferredColorScheme(.light)
+        .frame(width: panelWidth, height: panelHeight)
+        // ClashMac 暗色：根部压一层深炭色，让 hudWindow 毛玻璃透出偏黑的底色，
+        // 而不是系统灰。SwiftUI 层保持半透明，底部仍透出轻微模糊。
+        .background(DT.Color.surface.opacity(0.62))
+        .clipShape(RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous))
+        // ClashMac 无硬阴影，仅保留细描边定义面板边缘
+        .overlay(
+            RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous)
+                .strokeBorder(DT.Color.stroke, lineWidth: 0.8)
+        )
+        // Popover 强制深色：ClashMac 深炭玻璃风格
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - 内容区（路由切换）
@@ -118,16 +124,9 @@ struct PopoverPanel: View {
             Spacer()
             HStack(spacing: DT.Space.m) {
                 Button(action: { openSettings() }) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 14))
-                        .foregroundStyle(DT.Color.textSecondary.opacity(0.7))
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(.borderless)
-                Button(action: { openSettings() }) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 14))
-                        .foregroundStyle(DT.Color.textSecondary.opacity(0.7))
+                        .foregroundStyle(DT.Color.textSecondary)
                         .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.borderless)
@@ -236,11 +235,11 @@ struct PopoverPanel: View {
             .foregroundStyle(DT.Color.accent)
         }
         .padding(DT.Space.m)
-        .background(DT.Color.warningSoft)
+        .background(DT.Color.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card))
         .overlay(
             RoundedRectangle(cornerRadius: DT.Radius.card)
-                .stroke(DT.Color.warning.opacity(0.4), lineWidth: 1)
+                .stroke(DT.Color.warning.opacity(0.45), lineWidth: 1)
         )
     }
 
@@ -255,7 +254,7 @@ struct PopoverPanel: View {
             Spacer()
         }
         .padding(DT.Space.m)
-        .background(DT.Color.surfaceContainer)
+        .background(DT.Color.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card))
         .overlay(
             RoundedRectangle(cornerRadius: DT.Radius.card)
@@ -276,11 +275,11 @@ struct PopoverPanel: View {
             Spacer()
         }
         .padding(DT.Space.m)
-        .background(DT.Color.accentSoft)
+        .background(DT.Color.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card))
         .overlay(
             RoundedRectangle(cornerRadius: DT.Radius.card)
-                .stroke(DT.Color.accent.opacity(0.4), lineWidth: 1)
+                .stroke(DT.Color.accent.opacity(0.5), lineWidth: 1)
         )
     }
 
@@ -307,11 +306,11 @@ struct PopoverPanel: View {
             .tint(DT.Color.accent)
         }
         .padding(DT.Space.m)
-        .background(DT.Color.warningSoft)
+        .background(DT.Color.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card))
         .overlay(
             RoundedRectangle(cornerRadius: DT.Radius.card)
-                .stroke(DT.Color.warning.opacity(0.4), lineWidth: 1)
+                .stroke(DT.Color.warning.opacity(0.45), lineWidth: 1)
         )
     }
 }

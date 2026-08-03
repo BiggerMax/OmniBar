@@ -263,8 +263,8 @@ final class StatusItemManager: NSObject {
 
         guard let button = statusItem.button else { return }
 
-        let panelWidth: CGFloat = 340
-        let panelHeight: CGFloat = 520
+        let panelWidth = DT.Layout.panelWidth
+        let panelHeight = DT.Layout.panelHeight
 
         // 用屏幕坐标系直接计算 panel 位置：贴近状态栏按钮（屏幕右上角）下方。
         // 注意：不要依赖 button.window.convertToScreen（status bar 按钮的 window
@@ -311,8 +311,8 @@ final class StatusItemManager: NSObject {
         panel.becomesKeyOnlyIfNeeded = true
         panel.ignoresMouseEvents = false
         panel.acceptsMouseMovedEvents = true
-        // 面板固定浅色外观：白色透明玻璃风格（配合 .preferredColorScheme(.light)）
-        panel.appearance = NSAppearance(named: .aqua)
+        // ClashMac 风格：面板固定深色外观（配合 .preferredColorScheme(.dark)）
+        panel.appearance = NSAppearance(named: .darkAqua)
 
         let content = PopoverPanel(service: omnirouteService, settings: settings)
         let hosting = NSHostingView(rootView: content)
@@ -323,10 +323,10 @@ final class StatusItemManager: NSObject {
         // 外层普通容器 + 裁剪，防止 SwiftUI intrinsic 溢出改变实际布局宽度
         let container = ClippingContainerView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
 
-        // macOS 原生控制中心同款毛玻璃：NSVisualEffectView(.popover) + behindWindow 混合，
+        // ClashMac 风格暗色毛玻璃：NSVisualEffectView(.hudWindow) + behindWindow 混合，
         // 模糊背后内容并透视，交给 SwiftUI 的是完全透明的 SwiftUI 层。
         let effectView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
-        effectView.material = .popover
+        effectView.material = .hudWindow
         effectView.blendingMode = .behindWindow
         effectView.state = .active
         effectView.translatesAutoresizingMaskIntoConstraints = false
@@ -391,8 +391,8 @@ final class StatusItemManager: NSObject {
         let window = NSWindow(contentViewController: hosting)
         window.title = "OmniBar 设置"
         window.styleMask = [.titled, .closable, .miniaturizable]
-        // 设置窗口与 Popover 统一：浅色玻璃外观
-        window.appearance = NSAppearance(named: .aqua)
+        // 设置窗口与 Popover 统一：暗色玻璃外观
+        window.appearance = NSAppearance(named: .darkAqua)
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -421,7 +421,7 @@ final class ClippingContainerView: NSView {
         super.layout()
         wantsLayer = true
         layer?.masksToBounds = true
-        // 与 PopoverPanel 的 DT.Radius.card(12) 一致，裁切毛玻璃圆角
-        layer?.cornerRadius = 12
+        // 与 PopoverPanel 的 DT.Layout.panelRadius 一致，裁切毛玻璃圆角
+        layer?.cornerRadius = DT.Layout.panelRadius
     }
 }

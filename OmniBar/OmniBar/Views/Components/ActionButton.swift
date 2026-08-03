@@ -51,7 +51,6 @@ struct ActionButton: View {
         case .idle, .loading: return color
         }
     }
-
     /// 图标底板背景
     private var backgroundStyle: AnyShapeStyle {
         switch phase {
@@ -60,8 +59,9 @@ struct ActionButton: View {
         case .loading: return AnyShapeStyle(color.opacity(0.16))
         case .idle:
             if !isEnabled { return AnyShapeStyle(SwiftUI.Color.clear) }
-            if isHovering { return AnyShapeStyle(color.opacity(0.14)) }
-            return highlighted ? AnyShapeStyle(DT.Color.accentSoft) : AnyShapeStyle(SwiftUI.Color.clear)
+            if isHovering { return AnyShapeStyle(color.opacity(0.16)) }
+            // ClashMac 分段控制感：常驻白色 5% 底板，重启态用 accent 20%
+            return highlighted ? AnyShapeStyle(DT.Color.accent.opacity(0.20)) : AnyShapeStyle(SwiftUI.Color.white.opacity(0.05))
         }
     }
 
@@ -147,12 +147,12 @@ struct ActionButton: View {
     }
 
     private var labelColor: SwiftUI.Color {
-        guard isEnabled || isBusy else { return DT.Color.textSecondary.opacity(0.22) }
+        guard isEnabled || isBusy else { return DT.Color.textSecondary.opacity(0.25) }
         switch phase {
-        case .success: return DT.Color.success.opacity(0.9)
-        case .failure: return DT.Color.danger.opacity(0.9)
-        case .loading: return DT.Color.textSecondary.opacity(0.8)
-        case .idle: return DT.Color.textSecondary.opacity(isHovering ? 0.85 : 0.5)
+        case .success: return DT.Color.success.opacity(0.95)
+        case .failure: return DT.Color.danger.opacity(0.95)
+        case .loading: return DT.Color.textSecondary.opacity(0.85)
+        case .idle: return DT.Color.textSecondary.opacity(isHovering ? 0.9 : 0.7)
         }
     }
 

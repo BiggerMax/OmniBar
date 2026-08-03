@@ -37,10 +37,10 @@ struct SettingsView: View {
             Divider().background(DT.Color.strokeVariant)
             contentArea
         }
-        .frame(width: 613, height: 453)
+        .frame(width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight)
         .background(
             RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                .fill(DT.Color.surface.opacity(0.75))
+                .fill(DT.Color.surface.opacity(0.72))
                 .background(.ultraThinMaterial)
         )
         .overlay(
@@ -48,9 +48,8 @@ struct SettingsView: View {
                 .strokeBorder(DT.Color.stroke, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous))
-        .shadow(color: .black.opacity(0.5), radius: 25, x: 0, y: 25)
-        // 设置窗口与 Popover 统一：浅色玻璃风格
-        .preferredColorScheme(.light)
+        // ClashMac 暗色玻璃风格（与 Popover 统一）
+        .preferredColorScheme(.dark)
     }
 
     // MARK: 侧边栏
@@ -100,7 +99,8 @@ struct SettingsView: View {
     }
 
     private func navItem(_ tab: Tab) -> some View {
-        Button {
+        let isSelected = selection == tab
+        return Button {
             selection = tab
         } label: {
             HStack(spacing: DT.Space.l) {
@@ -113,10 +113,11 @@ struct SettingsView: View {
             }
             .padding(.horizontal, DT.Space.l)
             .padding(.vertical, DT.Space.s)
-            .foregroundStyle(selection == tab ? DT.Color.accent : DT.Color.textSecondary.opacity(0.7))
+            // ClashMac 选中态：靛蓝实心胶囊白字
+            .foregroundStyle(isSelected ? Color.white : DT.Color.textSecondary.opacity(0.75))
             .background(
                 RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                    .fill(selection == tab ? DT.Color.accentSoft : .clear)
+                    .fill(isSelected ? DT.Color.accent : .clear)
             )
         }
         .buttonStyle(.borderless)

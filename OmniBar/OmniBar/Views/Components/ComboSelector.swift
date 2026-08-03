@@ -76,14 +76,8 @@ struct ComboSelector: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                     if let strategy = activeCombo?.strategyLabel {
-                        Text(strategy)
-                            .font(DT.Font.label)
-                            .foregroundStyle(DT.Color.accent)
-                            .lineLimit(1)
-                            .fixedSize()
-                            .padding(.horizontal, DT.Space.s)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(DT.Color.accentSoft))
+                        // ClashMac 实心 accent 胶囊（白字）
+                        DPill(text: strategy, color: DT.Color.accent)
                             .layoutPriority(1)
                     }
                     Image(systemName: "chevron.right")
@@ -127,11 +121,11 @@ struct ComboSelector: View {
                     HStack(spacing: DT.Space.s) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(combo.id == service.activeComboID ? DT.Color.accent : .clear)
+                            .foregroundStyle(combo.id == service.activeComboID ? Color.white : .clear)
                             .frame(width: 14)
                         Text(combo.name)
                             .font(DT.Font.bodyMedium)
-                            .foregroundStyle(combo.id == service.activeComboID ? DT.Color.textPrimary : DT.Color.textSecondary)
+                            .foregroundStyle(combo.id == service.activeComboID ? Color.white : DT.Color.textSecondary)
                             .lineLimit(1)
                         Spacer()
                     }
@@ -140,7 +134,7 @@ struct ComboSelector: View {
                     .padding(.vertical, DT.Space.xs)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(combo.id == service.activeComboID ? DT.Color.accentSoft : Color.clear)
+                            .fill(combo.id == service.activeComboID ? DT.Color.accent : Color.clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -167,11 +161,11 @@ struct ComboSelector: View {
                     .padding(.vertical, 4)
                     .background(
                         RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                            .fill(DT.Color.surface)
+                            .fill(Color.white.opacity(0.04))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                            .strokeBorder(DT.Color.stroke.opacity(0.3), lineWidth: 0.5)
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
                     )
                 }
             }
