@@ -60,7 +60,7 @@ struct SettingsView: View {
                     Text("OmniBar")
                         .font(DT.Font.headline)
                         .foregroundStyle(DT.Color.textPrimary)
-                    Text("Gateway v1.0")
+                    Text("Gateway v1.5")
                         .font(DT.Font.micro)
                         .foregroundStyle(DT.Color.textSecondary.opacity(0.5))
                         .textCase(.uppercase)
