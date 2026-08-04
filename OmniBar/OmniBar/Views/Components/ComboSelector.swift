@@ -47,9 +47,10 @@ struct ComboSelector: View {
                         .strokeBorder(isHovering ? DT.Color.accent.opacity(0.28) : DT.Color.strokeVariant, lineWidth: 0.5)
                 )
                 .onHover { hovering in
-                    withAnimation(.easeOut(duration: 0.18)) { isHovering = hovering }
+                    withAnimation(Motion.hover) { isHovering = hovering }
                 }
-                .animation(.easeOut(duration: 0.2), value: showingMenu)
+                .hoverLift(scale: 1.01, glow: DT.Color.accent, radius: 6, liftDistance: 2)
+                .animation(Motion.value, value: showingMenu)
             }
         }
     }
@@ -82,7 +83,9 @@ struct ComboSelector: View {
                     }
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(DT.Color.textTertiary)
+                        .foregroundStyle(isHovering ? DT.Color.accent : DT.Color.textTertiary)
+                        .offset(x: isHovering ? 2 : 0)
+                        .animation(Motion.hover, value: isHovering)
                 }
             }
             .buttonStyle(.plain)

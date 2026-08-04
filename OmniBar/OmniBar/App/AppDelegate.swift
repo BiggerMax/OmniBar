@@ -12,8 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings.shared
     private(set) var omnirouteService: OmnirouteService!
     private var statusItemManager: StatusItemManager?
-    /// 兜底观察器：Cmd+, 打开的 SwiftUI Settings 窗口出现时强制浅色标题栏
-    private var settingsWindowAppearanceObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 测试宿主（XCTest hosted test）环境下跳过业务逻辑，
@@ -25,12 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 启动时隐藏 Dock 图标
         NSApp.setActivationPolicy(.accessory)
 
-        // 强制全局深色外观：Cmd+, 的 SwiftUI Settings 窗口标题栏在系统浅色模式下
-        // 默认跟随系统变浅，与 Popover 的 ClashMac 深色玻璃风格不一致。统一为 .darkAqua 后，
-        // 所有窗口（含设置窗口标题栏）在深浅色系统主题下都保持深色玻璃。
-        // （Popover 面板与 openSettings 窗口已各自显式 .darkAqua，不受影响。）
-        NSApp.appearance = NSAppearance(named: .darkAqua)
-        observeSettingsWindowAppearance()
+        // 背景跟随系统深浅色：不强制全局外观（不再设置 NSApp.appearance），
+        // DT.Color 设计 token 均为动态色，Popover / 设置窗口会随系统主题自动切换。
 
         // 若用户此前未配置 API Key（或仍是无效占位值），则填充本地网关默认 Key。
         // 占位/测试值会导致网关返回 403（token 无效），应替换为可用的默认 Key。
@@ -66,22 +60,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         omnirouteService?.stopPolling()
-    }
-
-    /// 兜底：Cmd+, 打开的 SwiftUI Settings 窗口在创建/激活时，再次强制深色标题栏，
-    /// 确保即使在系统浅色模式下也始终与 Popover 风格一致。
-    private func observeSettingsWindowAppearance() {
-        settingsWindowAppearanceObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didBecomeKeyNotification,
-            object: nil,
-            queue: .main
-        ) { note in
-            guard let window = note.object as? NSWindow,
-                  window.styleMask.contains(.titled) else { return }
-            // 仅处理尚未显式深色的标题窗口（Popover 是无边框面板，天然被过滤）
-            if window.appearance?.name != .darkAqua {
-                window.appearance = NSAppearance(named: .darkAqua)
-            }
-        }
     }
 }

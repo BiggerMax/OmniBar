@@ -65,6 +65,19 @@ struct ActionButton: View {
         }
     }
 
+    /// Liquid Glass 底板的 tint 色（跟随阶段/悬停，供 Glass.regular.tint 使用）
+    private var glassTint: SwiftUI.Color {
+        switch phase {
+        case .success: return DT.Color.success.opacity(0.20)
+        case .failure: return DT.Color.danger.opacity(0.20)
+        case .loading: return color.opacity(0.18)
+        case .idle:
+            if !isEnabled { return SwiftUI.Color.clear }
+            if isHovering { return color.opacity(0.18) }
+            return highlighted ? DT.Color.accent.opacity(0.24) : SwiftUI.Color.white.opacity(0.06)
+        }
+    }
+
     var body: some View {
         Button(action: triggerAction) {
             VStack(spacing: DT.Space.xxs) {
@@ -112,8 +125,18 @@ struct ActionButton: View {
 
     private var iconPlate: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: DT.Radius.button, style: .continuous)
-                .fill(backgroundStyle)
+            if #available(macOS 26.0, *) {
+                // 原生 Liquid Glass 交互高光：悬停/点击时边缘产生玻璃折射光
+                RoundedRectangle(cornerRadius: DT.Radius.button, style: .continuous)
+                    .fill(SwiftUI.Color.clear)
+                    .glassEffect(
+                        Glass.regular.tint(glassTint).interactive(true),
+                        in: RoundedRectangle(cornerRadius: DT.Radius.button, style: .continuous)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: DT.Radius.button, style: .continuous)
+                    .fill(backgroundStyle)
+            }
 
             // 加载时的环形进度圈，包裹在图标外侧
             if isBusy {

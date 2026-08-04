@@ -169,6 +169,8 @@ struct ProviderList: View {
             Text("\(active)/\(total)")
                 .font(DT.Font.monoSmall)
                 .foregroundStyle(DT.Color.textSecondary)
+                .contentTransition(.numericText())
+                .animation(Motion.value, value: active)
         }
         .padding(.horizontal, DT.Space.xs)
         .padding(.top, DT.Space.s)
@@ -362,10 +364,12 @@ private struct ProviderRowView: View {
                             .foregroundStyle(provider.healthColor)
                     }
                     if !isEditing {
-                        // 进入指示
+                        // 进入指示：悬停时箭头向右滑动并高亮，暗示可进入详情
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(DT.Color.textTertiary)
+                            .foregroundStyle(isHovering ? DT.Color.accent : DT.Color.textTertiary)
+                            .offset(x: isHovering ? 2 : 0)
+                            .animation(Motion.hover, value: isHovering)
                     }
                 }
             }
@@ -383,6 +387,8 @@ private struct ProviderRowView: View {
             )
         }
         .buttonStyle(PlainRowButtonStyle())
+        // 悬停上浮 + 辉光：整行有轻微物理抬升感
+        .hoverLift(scale: 1.015, glow: DT.Color.accent, radius: 6, liftDistance: 2)
         // 离线（error）整行降透明度，对齐 HTML 的 .opacity-60
         .opacity(provider.isDimmed && !isSelected ? 0.75 : 1.0)
         .onHover { hovering in

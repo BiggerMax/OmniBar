@@ -38,18 +38,8 @@ struct SettingsView: View {
             contentArea
         }
         .frame(width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight)
-        .background(
-            RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                .fill(DT.Color.surface.opacity(0.72))
-                .background(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous)
-                .strokeBorder(DT.Color.stroke, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: DT.Radius.card, style: .continuous))
-        // ClashMac 暗色玻璃风格（与 Popover 统一）
-        .preferredColorScheme(.dark)
+        .liquidGlassPanel(cornerRadius: DT.Radius.card)
+        // 跟随系统深浅色：不强制深色，DT.Color 动态色自动切换
     }
 
     // MARK: 侧边栏
@@ -95,7 +85,7 @@ struct SettingsView: View {
         .padding(.vertical, DT.Space.xl)
         .padding(.horizontal, DT.Space.m)
         .frame(width: 192, alignment: .leading)
-        .background(DT.Color.surface.opacity(0.8).background(.ultraThinMaterial))
+        .background(DT.Color.surface.opacity(0.5))
     }
 
     private func navItem(_ tab: Tab) -> some View {

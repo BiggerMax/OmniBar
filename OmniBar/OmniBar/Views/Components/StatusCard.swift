@@ -47,7 +47,10 @@ struct StatusCard: View {
             ))
             .toggleStyle(.switch)
             .controlSize(.small)
-            .tint(DT.Color.accent)
+            // 开关颜色跟随隧道状态：运行时绿色、切换中黄色、待开启时强调蓝
+            .tint(tunnelTint)
+            .animation(Motion.value, value: service.tunnelRunning)
+            .animation(Motion.value, value: service.tunnelOperationInProgress)
             .disabled(service.status != .running || service.tunnelOperationInProgress)
         }
         .padding(.horizontal, DT.Space.s)
@@ -69,6 +72,12 @@ struct StatusCard: View {
             return service.tunnelPublicURL
         }
         return "点击开启公网访问"
+    }
+
+    /// 隧道开关颜色：切换中=警告黄，运行时=成功绿，待开启=强调蓝
+    private var tunnelTint: SwiftUI.Color {
+        if service.tunnelOperationInProgress { return DT.Color.warning }
+        return service.tunnelRunning ? DT.Color.success : DT.Color.accent
     }
 
     private var topRow: some View {
@@ -133,10 +142,11 @@ struct StatusCard: View {
             metric(label: "PID", value: service.pid.map(String.init) ?? "—")
             metric(label: "UPTIME", value: formatUptime(service.uptime), accent: true)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func metric(label: String, value: String, accent: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .center, spacing: 2) {
             Text(label)
                 .font(DT.Font.statLabel)
                 .foregroundStyle(DT.Color.textSecondary)
@@ -150,7 +160,7 @@ struct StatusCard: View {
                 .contentTransition(.numericText())
                 .animation(.easeOut(duration: 0.3), value: value)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     private var dotColor: SwiftUI.Color {

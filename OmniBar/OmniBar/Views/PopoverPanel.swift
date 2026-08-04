@@ -11,6 +11,7 @@ import SwiftUI
 struct PopoverPanel: View {
     @ObservedObject var service: OmnirouteService
     @ObservedObject var settings: AppSettings
+    @Environment(\.colorScheme) private var colorScheme
 
     /// 路由：列表 <-> 详情大卡片
     enum Route: Equatable {
@@ -38,17 +39,35 @@ struct PopoverPanel: View {
             actionBar
         }
         .frame(width: panelWidth, height: panelHeight)
-        // ClashMac 暗色：根部压一层深炭色，让 hudWindow 毛玻璃透出偏黑的底色，
-        // 而不是系统灰。SwiftUI 层保持半透明，底部仍透出轻微模糊。
-        .background(DT.Color.surface.opacity(0.62))
-        .clipShape(RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous))
-        // ClashMac 无硬阴影，仅保留细描边定义面板边缘
-        .overlay(
+        // 原生右键菜单 Liquid Glass：macOS 26 用 SwiftUI .glassEffect 渲染系统玻璃（与右键菜单同款），
+        // 旧系统回退 .ultraThinMaterial。不再依赖 AppKit 层 NSVisualEffectView。
+        .background(panelGlass)
+        // 跟随系统深浅色：不再 .preferredColorScheme(.dark)，玻璃 tint / DT.Color 动态色自动适配
+    }
+
+    /// 面板背景：原生 Liquid Glass 玻璃层（tint 随系统深浅色动态切换）
+    @ViewBuilder
+    private var panelGlass: some View {
+        if #available(macOS 26.0, *) {
             RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous)
-                .strokeBorder(DT.Color.stroke, lineWidth: 0.8)
-        )
-        // Popover 强制深色：ClashMac 深炭玻璃风格
-        .preferredColorScheme(.dark)
+                .fill(.clear)
+                .glassEffect(
+                    Glass.regular.tint(
+                        colorScheme == .light
+                            ? Color.white.opacity(0.25)
+                            : Color.black.opacity(0.1)
+                    ),
+                    in: RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous)
+                )
+        } else {
+            // 旧系统：ultraThinMaterial + 随深浅色动态的 tint，与 macOS 26 的玻璃霜感保持一致
+            ZStack {
+                RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: DT.Layout.panelRadius, style: .continuous)
+                    .fill(DT.Color.panelTint)
+            }
+        }
     }
 
     // MARK: - 内容区（路由切换）
@@ -57,25 +76,25 @@ struct PopoverPanel: View {
         switch route {
         case .list:
             listContent
-                .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
+                .transition(.route(edge: .leading))
         case .provider(let p):
             ProviderDetailCard(provider: p, service: service) {
-                withAnimation(.easeInOut(duration: 0.22)) { route = .list }
+                withAnimation(Motion.route) { route = .list }
             }
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+            .transition(.route(edge: .trailing))
         case .combo(let c):
             ComboDetailCard(
                 combo: c,
                 isActive: service.activeComboID == c.id,
-                onClose: { withAnimation(.easeInOut(duration: 0.22)) { route = .list } },
+                onClose: { withAnimation(Motion.route) { route = .list } },
                 onActivate: {
                     Task {
                         _ = await service.switchCombo(to: c.id)
-                        withAnimation(.easeInOut(duration: 0.22)) { route = .list }
+                        withAnimation(Motion.route) { route = .list }
                     }
                 }
             )
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+            .transition(.route(edge: .trailing))
         }
     }
 
@@ -97,10 +116,10 @@ struct PopoverPanel: View {
                 }
                 UsageSummary(usage: service.usage, call: service.latestCall, isRunning: service.status == .running)
                 ProviderList(providers: service.providers, service: service) { provider in
-                    withAnimation(.easeInOut(duration: 0.22)) { route = .provider(provider) }
+                    withAnimation(Motion.route) { route = .provider(provider) }
                 }
                 ComboSelector(service: service) { combo in
-                    withAnimation(.easeInOut(duration: 0.22)) { route = .combo(combo) }
+                    withAnimation(Motion.route) { route = .combo(combo) }
                 }
             }
             // 关键：硬钉死内容宽度，任何子视图都不能把 ScrollView 横向撑爆
@@ -115,9 +134,18 @@ struct PopoverPanel: View {
         }
     }
 
-    // MARK: - 顶栏
+    // MARK: - 顶栏（ClashMac 品牌区：圆角 App 图标 + 名称 + 右侧操作）
     private var header: some View {
-        HStack {
+        HStack(spacing: DT.Space.m) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 26, height: 26)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                )
             Text("OmniBar")
                 .font(DT.Font.headline)
                 .foregroundStyle(DT.Color.textPrimary)
@@ -129,12 +157,12 @@ struct PopoverPanel: View {
                         .foregroundStyle(DT.Color.textSecondary)
                         .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.borderless)
+                .interactiveButton()
             }
         }
         .padding(.horizontal, DT.Space.xl)
         .padding(.vertical, DT.Space.l)
-        // 背景透明：毛玻璃由 AppKit 层 NSVisualEffectView 统一提供，保持控制中心通透感
+        // 背景透明：玻璃由根视图 .glassEffect 提供，这里只留一条细分隔线
         .overlay(
             Rectangle().fill(DT.Color.stroke).frame(height: 0.5),
             alignment: .bottom
@@ -186,13 +214,13 @@ struct PopoverPanel: View {
                     .font(.system(size: 14))
                     .foregroundStyle(DT.Color.textSecondary.opacity(0.4))
             }
-            .buttonStyle(.borderless)
+            .interactiveButton()
             .help("打开 Dashboard")
             .padding(.trailing, DT.Space.xl)
         }
         .frame(height: 56)
         .padding(.leading, DT.Space.xl)
-        // 背景透明：毛玻璃由 AppKit 层 NSVisualEffectView 统一提供，保持控制中心通透感
+        // 背景透明：玻璃由根视图 .glassEffect 提供，这里只留一条细分隔线
         .overlay(
             Rectangle().fill(DT.Color.stroke).frame(height: 0.5),
             alignment: .top

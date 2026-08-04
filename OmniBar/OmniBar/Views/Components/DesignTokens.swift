@@ -36,23 +36,15 @@ enum DT {
             light: SwiftUI.Color.black.opacity(0.09),
             dark: SwiftUI.Color.white.opacity(0.08)
         )
-        // ---- 文字（light: 深色 / dark: 低对比灰白三级）----
-        static let textPrimary = dynamicColor(
-            light: SwiftUI.Color(red: 0.11, green: 0.11, blue: 0.12),
-            dark: SwiftUI.Color(red: 0.949, green: 0.949, blue: 0.961)   // #F2F2F5
-        )
-        static let textSecondary = dynamicColor(
-            light: SwiftUI.Color(red: 0.36, green: 0.38, blue: 0.45),
-            dark: SwiftUI.Color(red: 0.604, green: 0.604, blue: 0.647)   // #9A9AA5
-        )
-        static let textTertiary = dynamicColor(
-            light: SwiftUI.Color(red: 0.48, green: 0.50, blue: 0.58),
-            dark: SwiftUI.Color(red: 0.431, green: 0.431, blue: 0.471)   // #6E6E78
-        )
-        static let textLabel = dynamicColor(
-            light: SwiftUI.Color(red: 0.36, green: 0.38, blue: 0.45).opacity(0.9),
-            dark: SwiftUI.Color(red: 0.604, green: 0.604, blue: 0.647).opacity(0.9)
-        )
+        // ---- 文字（macOS 26 语义色：.primary/.secondary 在玻璃上自动应用 Vibrancy）----
+        // 直接使用 SwiftUI 语义色，Liquid Glass 背景上会自动做活力补偿与智能调色，
+        // 无需再按深浅色手写十六进制（light/dark 分支一并语义化）。
+        static let textPrimary = SwiftUI.Color.primary
+        static let textSecondary = SwiftUI.Color.secondary
+        // 三级文字用系统语义 tertiaryLabelColor：层级语义与 .primary/.secondary 一致，
+        // 且不会因为二次降透明度在小字（monoSmall/micro）上过暗
+        static let textTertiary = SwiftUI.Color(nsColor: .tertiaryLabelColor)
+        static let textLabel = SwiftUI.Color.secondary
         // ---- 主品牌（ClashMac 靛蓝，Active 态作实心胶囊）----
         static let accent = dynamicColor(
             light: SwiftUI.Color(red: 0.35, green: 0.40, blue: 0.93),    // 浅色底略深
@@ -84,6 +76,24 @@ enum DT {
         // 透明占位
         static let clear = SwiftUI.Color.clear
 
+        // ---- 面板（macOS 26 原生 Liquid Glass：.glassEffect 玻璃的 tint 色）----
+        // 深色霜感：在保持玻璃透视的前提下压深背景（比原生菜单略暗，ClashMac 深炭风格）；
+        // 浅色为高透明白色霜感。动态色随系统深浅色自动切换。
+        static let panelTint = dynamicColor(
+            light: SwiftUI.Color.white.opacity(0.10),
+            dark: SwiftUI.Color(red: 0.055, green: 0.063, blue: 0.086).opacity(0.1)
+        )
+        // 面板边缘：玻璃折射高光——顶部亮、底部隐，营造「浮在桌面上」的薄片感。
+        // 浅色底用白色高光 + 轻微黑边；深色底用白高光渐隐。
+        static let glassBorderTop = dynamicColor(
+            light: SwiftUI.Color.white.opacity(0.6),
+            dark: SwiftUI.Color.white.opacity(0.22)
+        )
+        static let glassBorderBottom = dynamicColor(
+            light: SwiftUI.Color.black.opacity(0.10),
+            dark: SwiftUI.Color.white.opacity(0.06)
+        )
+
         /// 构造跟随 appearance 的动态颜色
         private static func dynamicColor(light: SwiftUI.Color, dark: SwiftUI.Color) -> SwiftUI.Color {
             let nsLight = NSColor(light)
@@ -99,7 +109,7 @@ enum DT {
         static let panelWidth: CGFloat = 340
         static let panelHeight: CGFloat = 560
         static let contentHeight: CGFloat = 464
-        static let panelRadius: CGFloat = 12
+        static let panelRadius: CGFloat = 10   // 原生右键菜单 Liquid Glass 圆角
         static let settingsWidth: CGFloat = 613
         static let settingsHeight: CGFloat = 453
     }
@@ -149,8 +159,8 @@ enum DT {
 
 // MARK: - 液态玻璃（Liquid Glass）
 
-/// 液态玻璃卡片底：跟随主题的半透明玻璃 + 细描边。
-/// 浅色 = 白底卡片；深色 = ClashMac 暗色玻璃（白 6% 底 + 白 9% 细边）
+/// 液态玻璃卡片底：原生 .ultraThinMaterial 材质（macOS 26 自动渲染为 Liquid Glass 卡片）+ 细描边。
+/// 浅色 = 白底卡片；深色 = 顶亮底隐的渐变描边，让卡片像嵌在玻璃面板里的半透明浮层。
 private struct LiquidGlassCard: ViewModifier {
     var cornerRadius: CGFloat
     @Environment(\.colorScheme) private var colorScheme
@@ -158,19 +168,74 @@ private struct LiquidGlassCard: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(
-                Rectangle().fill(colorScheme == .light ? Color.white.opacity(0.22) : Color.white.opacity(0.06))
+                // 原生材质：macOS 26 上 .ultraThinMaterial 即 Liquid Glass，旧系统自动降级为普通半透明材质
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(colorScheme == .light ? Color.black.opacity(0.12) : Color.white.opacity(0.09), lineWidth: 0.8)
+                    .strokeBorder(
+                        colorScheme == .light
+                            ? LinearGradient(colors: [Color.black.opacity(0.12), Color.black.opacity(0.12)],
+                                             startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Color.white.opacity(0.14), Color.white.opacity(0.05)],
+                                             startPoint: .top, endPoint: .bottom),
+                        lineWidth: 0.8
+                    )
             )
+    }
+}
+
+// MARK: - 液态玻璃面板（Liquid Glass Panel）
+// 面板级背景：相较上面的卡片，这里不压任何暗色底，而是用"竖向渐变 + 顶部高光 + 光泽"，
+// 让 NSVisualEffectView 的毛玻璃清晰透上来，达成液态玻璃的通透质感。
+
+/// 液态玻璃底色层：极淡的 tint，叠在 NSVisualEffectView 真模糊之上。
+/// 模糊后的桌面环境色会渗入面板底部，达成 ClashMac 菜单的「活玻璃」质感。
+private struct LGGlassBase: View {
+    var body: some View {
+        DT.Color.panelTint
+    }
+}
+
+/// 液态玻璃面板修饰器：供 Popover / 设置窗口根视图套用
+struct LiquidGlassPanelBuddy: ViewModifier {
+    var cornerRadius: CGFloat
+    var borderEmphasis: Double = 1.0
+    func body(content: Content) -> some View {
+        Group {
+            // 玻璃材质由 AppKit NSVisualEffectView(.popover/.menu) 提供——
+            // macOS 26 下已适配 Liquid Glass，SwiftUI 层只叠半透明 tint，不再画玻璃
+            content
+                .background(LGGlassBase())
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            // 玻璃边缘折射：顶部高光 → 底部隐没
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [DT.Color.glassBorderTop, DT.Color.glassBorderBottom],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        )
+    }
+}
+
+extension View {
+    /// 给任意视图套上液态玻璃面板底
+    func liquidGlassPanel(cornerRadius: CGFloat = DT.Radius.card) -> some View {
+        modifier(LiquidGlassPanelBuddy(cornerRadius: cornerRadius))
     }
 }
 
 // MARK: - 通用 UI 组件
 
-/// 卡片容器：液态玻璃底（半透白渐变 + 顶部内高光 + 细白描边）
+/// 卡片容器：液态玻璃卡片（半透白渐变 + 顶部内高光 + 细白描边）
 struct DCard<Content: View>: View {
     var padding: CGFloat = DT.Space.xl
     @ViewBuilder var content: () -> Content
@@ -334,6 +399,9 @@ struct DStatCard: View {
                 .foregroundStyle(valueColor ?? DT.Color.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                // 数据刷新时数字滚动过渡
+                .contentTransition(.numericText())
+                .animation(Motion.value, value: value)
             if let subtitle {
                 Text(subtitle)
                     .font(DT.Font.micro)

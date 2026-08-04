@@ -64,6 +64,8 @@ struct UsageSummary: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .minimumScaleFactor(0.5)
+                    .contentTransition(.numericText())
+                    .animation(Motion.value, value: call.displayModel)
                 Text("\(call.displayProvider) · \(call.durationText)")
                     .font(DT.Font.micro)
                     .foregroundStyle(DT.Color.textTertiary)
@@ -111,6 +113,7 @@ struct UsageSummary: View {
                 Capsule()
                     .fill(barColor)
                     .frame(width: max(3, geo.size.width * budgetProgress), height: 6)
+                    .animation(Motion.value, value: budgetProgress)
             }
         }
         .frame(height: 6)

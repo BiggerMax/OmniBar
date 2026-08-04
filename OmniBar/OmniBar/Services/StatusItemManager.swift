@@ -20,6 +20,12 @@ final class StatusItemManager: NSObject {
     private var settingsWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
+    // MARK: - 面板材质（原生右键菜单 style：.menu 材质 + 系统默认模糊）
+    /// 背景模糊半径：数值越小越通透、透视越强（仅 .popover 设置窗口生效；.menu 用系统原生模糊）
+    private let glassBlurRadius: CGFloat = 5
+    /// 材质叠加透明度：1.0 = 完整显示材质；< 1 时更透，底层桌面更清晰地透上来
+    private let glassBlurAlpha: CGFloat = 1
+
     init(service: OmnirouteService, settings: AppSettings) {
         self.omnirouteService = service
         self.settings = settings
@@ -302,8 +308,8 @@ final class StatusItemManager: NSObject {
         )
         panel.isFloatingPanel = true
         panel.level = .popUpMenu
-        // 关闭系统面板阴影，避免透明玻璃外围出现一圈黑影（控制中心无硬阴影）
-        panel.hasShadow = false
+        // 与原生右键菜单一致的柔和投影（圆角玻璃，阴影由 invalidateShadow 贴合圆角形状）
+        panel.hasShadow = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hidesOnDeactivate = false
@@ -311,38 +317,16 @@ final class StatusItemManager: NSObject {
         panel.becomesKeyOnlyIfNeeded = true
         panel.ignoresMouseEvents = false
         panel.acceptsMouseMovedEvents = true
-        // ClashMac 风格：面板固定深色外观（配合 .preferredColorScheme(.dark)）
-        panel.appearance = NSAppearance(named: .darkAqua)
+        // 跟随系统深浅色：不固定面板外观，DT.Color 动态色自动切换
 
         let content = PopoverPanel(service: omnirouteService, settings: settings)
         let hosting = NSHostingView(rootView: content)
         hosting.translatesAutoresizingMaskIntoConstraints = false
-        // 背景由下方 NSVisualEffectView 提供；PopoverPanel 根视图不绘制背景（见其 body），
-        // 因此 NSHostingView 内容透明，毛玻璃能透上来。
+        // 原生 Liquid Glass 由 SwiftUI 根视图直接渲染（.glassEffect），窗口保持透明即可透出桌面
 
         // 外层普通容器 + 裁剪，防止 SwiftUI intrinsic 溢出改变实际布局宽度
         let container = ClippingContainerView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
-
-        // ClashMac 风格暗色毛玻璃：NSVisualEffectView(.hudWindow) + behindWindow 混合，
-        // 模糊背后内容并透视，交给 SwiftUI 的是完全透明的 SwiftUI 层。
-        let effectView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
-        effectView.material = .hudWindow
-        effectView.blendingMode = .behindWindow
-        effectView.state = .active
-        effectView.translatesAutoresizingMaskIntoConstraints = false
-
-        container.addSubview(effectView)
         container.addSubview(hosting)
-        NSLayoutConstraint.activate([
-            effectView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            effectView.topAnchor.constraint(equalTo: container.topAnchor),
-            effectView.widthAnchor.constraint(equalToConstant: panelWidth),
-            effectView.heightAnchor.constraint(equalToConstant: panelHeight),
-            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            hosting.topAnchor.constraint(equalTo: container.topAnchor),
-            hosting.widthAnchor.constraint(equalToConstant: panelWidth),
-            hosting.heightAnchor.constraint(equalToConstant: panelHeight)
-        ])
 
         panel.contentView = container
         panel.contentMinSize = NSSize(width: panelWidth, height: panelHeight)
@@ -351,6 +335,11 @@ final class StatusItemManager: NSObject {
         panel.setFrame(panelRect, display: false)
 
         panel.orderFrontRegardless()
+        // 阴影形状由内容的透明区域决定：等下一轮 runloop（layout 已应用圆角裁切）
+        // 再重新计算，让柔和投影贴合圆角玻璃而非矩形窗框
+        DispatchQueue.main.async { [weak panel] in
+            panel?.invalidateShadow()
+        }
         self.popoverPanel = panel
 
         // 点击 panel 外自动关闭
@@ -387,12 +376,39 @@ final class StatusItemManager: NSObject {
         // 先关闭 popover，避免设置窗口与 popover 重叠
         closePopoverPanel()
         let settingsView = SettingsView(settings: settings, service: self.omnirouteService)
-        let hosting = NSHostingController(rootView: settingsView)
-        let window = NSWindow(contentViewController: hosting)
+        let hosting = NSHostingView(rootView: settingsView)
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        hosting.frame = NSRect(x: 0, y: 0, width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight)
+
+        // 与 Popover 相同的轻度毛玻璃 + 上方透明 SwiftUI 层
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight))
+        container.wantsLayer = true
+        container.layer?.masksToBounds = true
+        container.layer?.cornerRadius = DT.Radius.card
+
+        if let effectView = makeGlassEffect(frame: container.bounds) {
+            container.addSubview(effectView)
+        }
+        container.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hosting.topAnchor.constraint(equalTo: container.topAnchor),
+            hosting.widthAnchor.constraint(equalToConstant: DT.Layout.settingsWidth),
+            hosting.heightAnchor.constraint(equalToConstant: DT.Layout.settingsHeight)
+        ])
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = container
         window.title = "OmniBar 设置"
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        // 设置窗口与 Popover 统一：暗色玻璃外观
-        window.appearance = NSAppearance(named: .darkAqua)
+        // 窗口透明（无背景模糊）：背景由 SwiftUI 透明玻璃渐变直接提供，透出桌面内容
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        // 跟随系统深浅色：不固定窗口外观（不设置 window.appearance）
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -402,11 +418,34 @@ final class StatusItemManager: NSObject {
     @objc private func quitApp() {
         NSApp.terminate(nil)
     }
+
+    /// 构建毛玻璃背景视图：默认 .popover 材质（设置窗口，可调自定义模糊），
+    /// 传入 .menu 材质时（Popover）交给系统渲染原生 Liquid Glass——与右键菜单完全一致：
+    /// 系统默认模糊 + 自带边缘/活力，不覆盖任何私有参数。
+    /// glassBlurAlpha<=0 时返回 nil（不添加模糊层）。
+    private func makeGlassEffect(frame: NSRect, material: NSVisualEffectView.Material = .popover) -> NSVisualEffectView? {
+        guard glassBlurAlpha > 0 else { return nil }
+        let effectView = NSVisualEffectView(frame: frame)
+        effectView.material = material
+        effectView.blendingMode = .behindWindow
+        effectView.state = .active
+        // 自定义 blurRadius 仅用于 .popover（设置窗口）；.menu 保持系统默认模糊，避免破坏原生玻璃观感
+        if material == .popover,
+           glassBlurRadius > 0,
+           effectView.responds(to: NSSelectorFromString("setBlurRadius:")) {
+            effectView.setValue(glassBlurRadius, forKey: "blurRadius")
+        }
+        if glassBlurAlpha < 1 {
+            effectView.alphaValue = glassBlurAlpha
+        }
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+        return effectView
+    }
 }
 
 /// 固定尺寸的裁剪容器：屏蔽子视图（SwiftUI hosting view）的 intrinsic size 影响
 /// 并在 layer 层裁切圆角——毛玻璃（NSVisualEffectView）不受 SwiftUI clipShape 约束，
-/// 必须在此用 layer.cornerRadius 裁出面板圆角。
+/// 必须在此用 layer.cornerRadius 裁出原生菜单圆角。
 final class ClippingContainerView: NSView {
     override var isFlipped: Bool { true }
 
