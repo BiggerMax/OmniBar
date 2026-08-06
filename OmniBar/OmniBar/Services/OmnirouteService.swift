@@ -57,6 +57,8 @@ final class OmnirouteService: ObservableObject {
     @Published private(set) var providers: [Provider] = []
     @Published private(set) var combos: [Combo] = []
     @Published private(set) var activeComboID: String? = nil
+    /// 网关可路由模型列表（GET /v1/models），供「AI 接入」模型选择
+    @Published private(set) var gatewayModels: [GatewayModel] = []
     @Published private(set) var usage: UsageStats = .init()
     /// 最近一次真实模型调用（GET /api/usage/call-logs），用于「当前调用」展示
     @Published private(set) var latestCall: CallLog? = nil
@@ -232,10 +234,15 @@ final class OmnirouteService: ObservableObject {
             async let u = api.fetchUsageStats()
             async let v = api.fetchSystemVersion()
             async let calls = api.fetchRecentCalls(limit: 10)
+            async let m = api.fetchModels()
 
             let (providers, combos) = try await (p, c)
             self.providers = providers
             self.combos = combos
+            // 网关模型列表：失败不阻断（旧版网关或无 /v1/models 时保持为空）
+            if let models = try? await m {
+                self.gatewayModels = models
+            }
             // usage 获取失败不阻断主流程（部分网关可能未启用 analytics）
             if let stats = try? await u {
                 self.usage = stats

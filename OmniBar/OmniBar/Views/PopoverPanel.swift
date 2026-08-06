@@ -11,6 +11,7 @@ import SwiftUI
 struct PopoverPanel: View {
     @ObservedObject var service: OmnirouteService
     @ObservedObject var settings: AppSettings
+    var linkManager: ProviderLinkManager?
     @Environment(\.colorScheme) private var colorScheme
 
     /// 路由：列表 <-> 详情大卡片
@@ -18,6 +19,7 @@ struct PopoverPanel: View {
         case list
         case provider(Provider)
         case combo(Combo)
+        case aiIntegration
     }
     @State private var route: Route = .list
 
@@ -95,6 +97,14 @@ struct PopoverPanel: View {
                 }
             )
             .transition(.route(edge: .trailing))
+        case .aiIntegration:
+            AIIntegrationPanel(
+                settings: settings,
+                service: service,
+                manager: linkManager,
+                onClose: { withAnimation(Motion.route) { route = .list } }
+            )
+            .transition(.route(edge: .trailing))
         }
     }
 
@@ -105,6 +115,7 @@ struct PopoverPanel: View {
                 StatusCard(service: service) {
                     Task { await service.checkForUpdate() }
                 }
+                aiEntryCard
                 if service.needsAuth {
                     authBanner
                 } else if service.isUpdating {
@@ -133,15 +144,72 @@ struct PopoverPanel: View {
             NSScrollView.omnibarHideScrollbars(nssv)
         }
     }
+    // MARK: - AI 接入入口卡片
+
+    /// AI 接入入口卡片：与「隧道」开关同款式，点击进入完整接入页
+    private var aiEntryCard: some View {
+        Button {
+            withAnimation(Motion.route) { route = .aiIntegration }
+        } label: {
+            HStack(spacing: DT.Space.m) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(aiLinkedAny ? DT.Color.success : DT.Color.textTertiary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("AI 接入")
+                        .font(DT.Font.statLabel)
+                        .foregroundStyle(DT.Color.textLabel)
+                        .tracking(1.0)
+                    Text(aiSubtitle)
+                        .font(DT.Font.micro)
+                        .foregroundStyle(DT.Color.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                Spacer()
+                if aiLinkedAny {
+                    DPill(text: "已接入", color: DT.Color.success)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(DT.Color.textSecondary.opacity(0.4))
+            }
+            .padding(.horizontal, DT.Space.s)
+            .padding(.vertical, DT.Space.s)
+            .background(
+                RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                    .fill(DT.Color.surfaceElevated.opacity(0.5))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                    .strokeBorder(DT.Color.strokeVariant, lineWidth: 0.5)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .hoverLift(scale: 1.01, glow: DT.Color.accent, radius: 6, liftDistance: 2)
+    }
+
+    /// 是否有任一目标已接入（用于入口卡片的图标与胶囊状态）
+    private var aiLinkedAny: Bool {
+        settings.linkClaudeCode || settings.linkCodex
+    }
+
+    /// 入口卡片副标题：无接入时给引导文案，有接入时列出已接入目标
+    private var aiSubtitle: String {
+        let linked = LinkTarget.allCases
+            .filter { $0 == .claudeCode ? settings.linkClaudeCode : settings.linkCodex }
+            .map(\.title)
+        return linked.isEmpty
+            ? "将 omniroute 网关接入 Claude Code / Codex"
+            : "已接入：" + linked.joined(separator: "、")
+    }
 
     // MARK: - 顶栏（ClashMac 品牌区：圆角 App 图标 + 名称 + 右侧操作）
     private var header: some View {
         HStack(spacing: DT.Space.m) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 26, height: 26)
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            // 品牌图标（与「关于」页同款）：靛蓝渐变圆角方块 + 白色仪表符号
+            BrandIcon(size: 26, cornerRadius: 7, symbolSize: 13)
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
@@ -169,32 +237,33 @@ struct PopoverPanel: View {
         )
     }
 
-    // MARK: - 底部 Action Bar
+    // MARK: - 底部 Action Bar（仅图标，无文字）
     private var actionBar: some View {
         HStack(spacing: 0) {
             ActionButton(
                 icon: "play.fill",
-                label: "启动",
                 color: DT.Color.accent,
                 phase: phase(for: .start),
                 isEnabled: service.status != .running && !service.isOperationInProgress
             ) {
                 Task { _ = await service.start() }
             }
+            .help("启动 Omniroute")
+            .accessibilityLabel("启动 Omniroute")
 
             ActionButton(
                 icon: "stop.fill",
-                label: "停止",
                 color: DT.Color.danger,
                 phase: phase(for: .stop),
                 isEnabled: service.status == .running && !service.isOperationInProgress
             ) {
                 Task { _ = await service.stop() }
             }
+            .help("停止 Omniroute")
+            .accessibilityLabel("停止 Omniroute")
 
             ActionButton(
                 icon: "arrow.clockwise",
-                label: "重启",
                 color: DT.Color.accent,
                 highlighted: true,
                 phase: phase(for: .restart),
@@ -202,6 +271,8 @@ struct PopoverPanel: View {
             ) {
                 Task { _ = await service.restart() }
             }
+            .help("重启 Omniroute")
+            .accessibilityLabel("重启 Omniroute")
 
             Spacer().frame(width: 0)
 
@@ -218,7 +289,7 @@ struct PopoverPanel: View {
             .help("打开 Dashboard")
             .padding(.trailing, DT.Space.xl)
         }
-        .frame(height: 56)
+        .frame(height: 48)
         .padding(.leading, DT.Space.xl)
         // 背景透明：玻璃由根视图 .glassEffect 提供，这里只留一条细分隔线
         .overlay(

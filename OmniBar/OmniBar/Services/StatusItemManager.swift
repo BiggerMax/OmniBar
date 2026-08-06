@@ -75,24 +75,58 @@ final class StatusItemManager: NSObject {
     /// 各状态图标只渲染一次并缓存（renderTitle 每秒调用，避免反复分配位图）。
     private static var iconCache: [ServiceStatus: NSImage] = [:]
 
-    /// 绘制菜单栏图标：自绘实心圆，整体按服务状态着色（运行绿 / 停止灰 / 错误红 / 未知黄）。
+    /// 绘制菜单栏图标：「关于」页品牌图标的迷你版——圆角方块底色随服务状态变化
+    /// （运行绿 / 停止灰 / 错误红 / 未知黄），内部叠白色仪表符号，既统一品牌形象又保留状态语义。
     /// 用 lockFocus 写入位图缓存，保证菜单栏按钮必定能绘制出来，不会出现图标空白占位。
-    /// 画布保持标准 18×18 菜单栏图标尺寸（与其他图标垂直对齐），圆点直径 14pt、
-    /// 四周仅 2pt 透明边距，与系统图标的视觉密度一致，避免前后出现“空隙”观感。
+    /// 画布保持标准 18×18 菜单栏图标尺寸（与其他图标垂直对齐），与系统图标的视觉密度一致。
     private static func statusBarIcon(for status: ServiceStatus) -> NSImage {
         if let cached = iconCache[status] { return cached }
         let color = statusColor(for: status)
-        let size = NSSize(width: 18, height: 18)
+        let canvas: CGFloat = 18
+        let size = NSSize(width: canvas, height: canvas)
         let image = NSImage(size: size)
         image.isTemplate = false
         image.lockFocus()
+
+        // 圆角方块底（状态色）
+        let squareSize: CGFloat = 16
+        let inset = (canvas - squareSize) / 2
+        let squareRect = NSRect(x: inset, y: inset, width: squareSize, height: squareSize)
+        let squarePath = NSBezierPath(roundedRect: squareRect, xRadius: 4.5, yRadius: 4.5)
         color.setFill()
-        let dotDiameter: CGFloat = 14
-        let inset = (size.width - dotDiameter) / 2
-        NSBezierPath(ovalIn: NSRect(x: inset, y: inset, width: dotDiameter, height: dotDiameter)).fill()
+        squarePath.fill()
+
+        // 白色仪表符号
+        if let symbol = Self.whiteSymbol("gauge.with.dots.needle.67percent", pointSize: 11) {
+            let symbolSize = symbol.size
+            symbol.draw(in: NSRect(
+                x: (canvas - symbolSize.width) / 2,
+                y: (canvas - symbolSize.height) / 2,
+                width: symbolSize.width,
+                height: symbolSize.height
+            ))
+        }
         image.unlockFocus()
         iconCache[status] = image
         return image
+    }
+
+    /// 渲染指定 SF Symbol 为白色位图（符号先按模板绘制，再用 sourceAtop 填充白色）
+    private static func whiteSymbol(_ name: String, pointSize: CGFloat) -> NSImage? {
+        guard let base = NSImage(systemSymbolName: name, accessibilityDescription: nil),
+              let symbol = base.withSymbolConfiguration(
+                  NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
+              )
+        else { return nil }
+        let symbolSize = symbol.size
+        let tinted = NSImage(size: symbolSize)
+        tinted.isTemplate = false
+        tinted.lockFocus()
+        symbol.draw(in: NSRect(origin: .zero, size: symbolSize))
+        NSColor.white.set()
+        NSRect(origin: .zero, size: symbolSize).fill(using: .sourceAtop)
+        tinted.unlockFocus()
+        return tinted
     }
 
     /// 双层菜单栏文本缓存：renderTitle 每秒调用，但用量仅在轮询刷新时变化，
@@ -319,7 +353,9 @@ final class StatusItemManager: NSObject {
         panel.acceptsMouseMovedEvents = true
         // 跟随系统深浅色：不固定面板外观，DT.Color 动态色自动切换
 
-        let content = PopoverPanel(service: omnirouteService, settings: settings)
+        let content = PopoverPanel(service: omnirouteService,
+                                   settings: settings,
+                                   linkManager: AppDelegate.shared?.linkManager)
         let hosting = NSHostingView(rootView: content)
         hosting.translatesAutoresizingMaskIntoConstraints = false
         // 原生 Liquid Glass 由 SwiftUI 根视图直接渲染（.glassEffect），窗口保持透明即可透出桌面
@@ -375,7 +411,9 @@ final class StatusItemManager: NSObject {
     @objc private func openSettings() {
         // 先关闭 popover，避免设置窗口与 popover 重叠
         closePopoverPanel()
-        let settingsView = SettingsView(settings: settings, service: self.omnirouteService)
+        let settingsView = SettingsView(settings: settings,
+                                        service: self.omnirouteService,
+                                        linkManager: AppDelegate.shared?.linkManager)
         let hosting = NSHostingView(rootView: settingsView)
         hosting.translatesAutoresizingMaskIntoConstraints = false
         hosting.frame = NSRect(x: 0, y: 0, width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight)
@@ -385,6 +423,8 @@ final class StatusItemManager: NSObject {
         container.wantsLayer = true
         container.layer?.masksToBounds = true
         container.layer?.cornerRadius = DT.Radius.card
+        // 设置窗口带系统标题栏：只圆底部两角，避免顶部与标题栏之间出现圆角空隙
+        container.layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
 
         if let effectView = makeGlassEffect(frame: container.bounds) {
             container.addSubview(effectView)

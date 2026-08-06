@@ -6,19 +6,22 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     var service: OmnirouteService?
+    var linkManager: ProviderLinkManager?
     @State private var selection: Tab = .general
 
     enum Tab: String, CaseIterable, Identifiable {
-        case general, connection, about
+        case general, connection, link, about
         var id: String { rawValue }
         var title: String {
             switch self {
             case .general: return "通用"
             case .connection: return "连接"
+            case .link: return "AI 接入"
             case .about: return "关于"
             }
         }
@@ -26,6 +29,7 @@ struct SettingsView: View {
             switch self {
             case .general: return "gearshape"
             case .connection: return "hub"
+            case .link: return "arrow.triangle.branch"
             case .about: return "info.circle"
             }
         }
@@ -38,7 +42,8 @@ struct SettingsView: View {
             contentArea
         }
         .frame(width: DT.Layout.settingsWidth, height: DT.Layout.settingsHeight)
-        .liquidGlassPanel(cornerRadius: DT.Radius.card)
+        // 设置窗口顶部贴系统标题栏：只圆底部两角，消除顶部圆角空隙
+        .liquidGlassPanel(cornerRadius: DT.Radius.card, bottomCornersOnly: true)
         // 跟随系统深浅色：不强制深色，DT.Color 动态色自动切换
     }
 
@@ -60,7 +65,7 @@ struct SettingsView: View {
                     Text("OmniBar")
                         .font(DT.Font.headline)
                         .foregroundStyle(DT.Color.textPrimary)
-                    Text("Gateway v1.5")
+                    Text("Gateway v2.0")
                         .font(DT.Font.micro)
                         .foregroundStyle(DT.Color.textSecondary.opacity(0.5))
                         .textCase(.uppercase)
@@ -114,12 +119,26 @@ struct SettingsView: View {
     }
 
     // MARK: 内容区
+    /// 动态解析：Settings scene 只构建一次，启动时捕获的 linkManager 可能为 nil；
+    /// 因此在渲染时从 AppDelegate.shared 实时取（NSApp.delegate 是协议抽象类型，无法 as? AppDelegate）。
+    private var resolvedLinkManager: ProviderLinkManager? {
+        linkManager ?? AppDelegate.shared?.linkManager
+    }
+
     @ViewBuilder
     private var contentArea: some View {
         Group {
             switch selection {
             case .general: GeneralSettings(settings: settings, service: service)
             case .connection: ConnectionSettings(settings: settings)
+            case .link:
+                if let manager = resolvedLinkManager {
+                    AIIntegrationSettings(settings: settings, service: service, manager: manager)
+                } else {
+                    Text("AI 接入不可用（未初始化）")
+                        .font(DT.Font.caption)
+                        .foregroundStyle(DT.Color.textSecondary)
+                }
             case .about: AboutSettings()
             }
         }

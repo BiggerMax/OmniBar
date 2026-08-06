@@ -218,6 +218,16 @@ final class OmnirouteAPIClient {
         return resp.combos
     }
 
+    /// GET /v1/models -> { object, data: [GatewayModel] }（OpenAI 兼容接口，供「AI 接入」模型选择）
+    struct ModelsResponse: Codable {
+        let data: [GatewayModel]
+    }
+
+    func fetchModels() async throws -> [GatewayModel] {
+        let resp: ModelsResponse = try await request("/v1/models")
+        return resp.data
+    }
+
     // MARK: - Prompt Compression
 
     /// /api/settings/compression -> { enabled, defaultMode, ... }

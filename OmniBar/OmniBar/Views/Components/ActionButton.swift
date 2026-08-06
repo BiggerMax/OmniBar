@@ -17,7 +17,6 @@ enum ActionPhase: Equatable {
 
 struct ActionButton: View {
     let icon: String
-    let label: String
     let color: SwiftUI.Color
     var highlighted: Bool = false
     var phase: ActionPhase = .idle
@@ -80,17 +79,9 @@ struct ActionButton: View {
 
     var body: some View {
         Button(action: triggerAction) {
-            VStack(spacing: DT.Space.xxs) {
-                iconPlate
-                Text(label.uppercased())
-                    .font(DT.Font.label)
-                    .foregroundStyle(labelColor)
-                    .tracking(1.5)
-                    .animation(.easeOut(duration: 0.2), value: phase)
-                    .animation(.easeOut(duration: 0.2), value: isEnabled)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            iconPlate
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
         .disabled(!isEnabled)
@@ -167,16 +158,6 @@ struct ActionButton: View {
 
     private var iconSize: CGFloat {
         phase == .success ? 15 : 16
-    }
-
-    private var labelColor: SwiftUI.Color {
-        guard isEnabled || isBusy else { return DT.Color.textSecondary.opacity(0.25) }
-        switch phase {
-        case .success: return DT.Color.success.opacity(0.95)
-        case .failure: return DT.Color.danger.opacity(0.95)
-        case .loading: return DT.Color.textSecondary.opacity(0.85)
-        case .idle: return DT.Color.textSecondary.opacity(isHovering ? 0.9 : 0.7)
-        }
     }
 
     // MARK: - 交互与动画驱动

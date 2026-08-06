@@ -68,6 +68,42 @@ final class AppSettings: ObservableObject {
     /// 崩溃自动重启的最大连续尝试次数（防止无限重启循环）
     @AppStorage("restartRetryLimit") var restartRetryLimit: Int = 3
 
+    // MARK: - AI 接入（v2.0）
+
+    /// 是否把网关接入 Claude Code（含 Claude Desktop 共用 env 配置）
+    @AppStorage("linkClaudeCode") var linkClaudeCode: Bool = false {
+        didSet { notifyChange() }
+    }
+    /// 是否把网关接入 Codex（CLI + ChatGPT Desktop 共用 auth/config）
+    @AppStorage("linkCodex") var linkCodex: Bool = false {
+        didSet { notifyChange() }
+    }
+    /// Claude Code 使用的网关模型（默认由网关模型列表填充）
+    @AppStorage("linkClaudeModel") var linkClaudeModel: String = "" {
+        didSet { notifyChange() }
+    }
+    /// Codex 使用的网关模型
+    @AppStorage("linkCodexModel") var linkCodexModel: String = "" {
+        didSet { notifyChange() }
+    }
+    /// Claude Desktop 本地路由代理监听端口（3P profile 的 inferenceGatewayBaseUrl 指向它）
+    @AppStorage("claudeDesktopProxyPort") var claudeDesktopProxyPort: Int = 16931 {
+        didSet { notifyChange() }
+    }
+    /// 四个角色各自的真实网关模型映射；留空跟随 linkClaudeModel。
+    @AppStorage("claudeDesktopSonnetModel") var claudeDesktopSonnetModel: String = "" {
+        didSet { notifyChange() }
+    }
+    @AppStorage("claudeDesktopOpusModel") var claudeDesktopOpusModel: String = "" {
+        didSet { notifyChange() }
+    }
+    @AppStorage("claudeDesktopHaikuModel") var claudeDesktopHaikuModel: String = "" {
+        didSet { notifyChange() }
+    }
+    @AppStorage("claudeDesktopFableModel") var claudeDesktopFableModel: String = "" {
+        didSet { notifyChange() }
+    }
+
     /// 自动探测 omniroute 可执行文件位置（Homebrew ARM / Intel / 用户目录）
     static func detectOmnirouteBinary() -> String {
         let candidates = [

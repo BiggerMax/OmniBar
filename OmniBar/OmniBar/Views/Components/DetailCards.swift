@@ -263,6 +263,10 @@ struct ProviderDetailCard: View {
     let onClose: () -> Void
 
     @State private var pendingDelete = false
+    /// API Key 是否明文显示
+    @State private var showAPIKey = false
+    /// 复制成功反馈
+    @State private var keyCopied = false
 
     var body: some View {
         DetailCardShell(
@@ -309,18 +313,14 @@ struct ProviderDetailCard: View {
             DCard(padding: DT.Space.l) {
                 VStack(alignment: .leading, spacing: DT.Space.m) {
                     DetailRow(label: "类型", value: provider.providerType, monospaced: true)
-                    DetailRow(label: "Base URL", value: provider.baseURL, monospaced: true)
+                    // 只展示真实上游地址；连接未配置上游时不虚构（不用网关地址冒充）
+                    if let base = provider.baseURL, !base.isEmpty {
+                        DetailRow(label: "Base URL", value: base, monospaced: true)
+                    } else {
+                        DetailRow(label: "Base URL", value: "未配置", valueColor: DT.Color.textTertiary, monospaced: true)
+                    }
                     if let key = provider.maskedAPIKey, !key.isEmpty {
-                        DetailRow(label: "API Key") {
-                            HStack(spacing: DT.Space.xs) {
-                                Text(ProviderDetailCard.maskKey(key))
-                                    .font(DT.Font.monoSmall)
-                                    .foregroundStyle(DT.Color.textPrimary)
-                                Image(systemName: "checkmark.shield.fill")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(DT.Color.success)
-                            }
-                        }
+                        DetailRow(label: "API Key") { apiKeyRow(key) }
                     } else {
                         DetailRow(label: "API Key", value: "未配置", valueColor: DT.Color.textTertiary)
                     }
@@ -328,6 +328,58 @@ struct ProviderDetailCard: View {
             }
         }
     }
+
+    /// API Key 行：默认脱敏，可切换显示 + 复制。
+    /// 注意：omniroute 接口只返回脱敏 Key（本地存储亦加密），完整 Key 无法通过接口获取，
+    /// 此处展示的是 omniroute 实际返回的值。
+    private func apiKeyRow(_ key: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: DT.Space.xs) {
+                // 始终可选中：脱敏态选中的是脱敏值，显示态选中服务器返回的值
+                Text(showAPIKey ? key : ProviderDetailCard.maskKey(key))
+                    .font(DT.Font.monoSmall)
+                    .foregroundStyle(DT.Color.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                Spacer(minLength: DT.Space.s)
+                // 复制（自动切到显示态后复制服务器返回值）
+                Button {
+                    copyAPIKey(key)
+                } label: {
+                    Image(systemName: keyCopied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundStyle(keyCopied ? DT.Color.success : DT.Color.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("复制 API Key")
+                // 显示 / 隐藏切换
+                Button {
+                    withAnimation(.easeOut(duration: 0.18)) { showAPIKey.toggle() }
+                } label: {
+                    Image(systemName: showAPIKey ? "eye.slash" : "eye")
+                        .font(.system(size: 11))
+                        .foregroundStyle(DT.Color.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help(showAPIKey ? "隐藏 API Key" : "显示 API Key")
+            }
+            if showAPIKey {
+                Text("omniroute 仅提供脱敏 Key（完整 Key 不通过接口返回）")
+                    .font(DT.Font.micro)
+                    .foregroundStyle(DT.Color.textTertiary)
+            }
+        }
+    }
+
+    private func copyAPIKey(_ key: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(key, forType: .string)
+        showAPIKey = true
+        keyCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { keyCopied = false }
+    }
+
 
     private var diagnosticSection: some View {
         VStack(alignment: .leading, spacing: DT.Space.s) {

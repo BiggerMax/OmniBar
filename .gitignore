@@ -29,6 +29,9 @@ generated-images/
 # Command Code local config (taste, settings)
 .commandcode/
 
+# Nodeterm session state
+.nodeterm/
+
 # OS / temp
 *.log
 .TemporaryItems/

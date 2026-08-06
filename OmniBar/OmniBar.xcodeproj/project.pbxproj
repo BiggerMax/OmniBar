@@ -32,9 +32,22 @@
 		AA000019 /* AboutSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100019 /* AboutSettings.swift */; };
 		AA000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA100020 /* Assets.xcassets */; };
 		AA000021 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100021 /* LaunchAtLogin.swift */; };
+		AA000030 /* ProviderLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100030 /* ProviderLink.swift */; };
+		AA000031 /* CodexModelCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100031 /* CodexModelCatalog.swift */; };
+		AA000032 /* AtomicWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100032 /* AtomicWriter.swift */; };
+		AA000033 /* ClaudeCodeLiveConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100033 /* ClaudeCodeLiveConfig.swift */; };
+		AA000034 /* CodexLiveConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100034 /* CodexLiveConfig.swift */; };
+		AA000035 /* ProviderLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100035 /* ProviderLinkManager.swift */; };
+		AA000036 /* AIIntegrationSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100036 /* AIIntegrationSettings.swift */; };
+		AA000037 /* ClaudeDesktopLiveConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100037 /* ClaudeDesktopLiveConfig.swift */; };
+		AA000038 /* AIIntegrationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100038 /* AIIntegrationSection.swift */; };
+		AA000039 /* ClaudeRouteProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100039 /* ClaudeRouteProxy.swift */; };
 		BB000001 /* OmniBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100001 /* OmniBarTests.swift */; };
 		BB000002 /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100002 /* MockURLProtocol.swift */; };
 		BB000003 /* OmnirouteAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100003 /* OmnirouteAPIClientTests.swift */; };
+		BB000004 /* LiveConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100004 /* LiveConfigTests.swift */; };
+		BB000005 /* CodexModelCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100005 /* CodexModelCatalogTests.swift */; };
+		BB000006 /* ClaudeRouteProxyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100006 /* ClaudeRouteProxyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,10 +90,23 @@
 		AA100027 /* DetailCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailCards.swift; sourceTree = "<group>"; };
 		AA100028 /* CallLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallLog.swift; sourceTree = "<group>"; };
 		AA100029 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
+		AA100030 /* ProviderLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderLink.swift; sourceTree = "<group>"; };
+		AA100031 /* CodexModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexModelCatalog.swift; sourceTree = "<group>"; };
+		AA100032 /* AtomicWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicWriter.swift; sourceTree = "<group>"; };
+		AA100033 /* ClaudeCodeLiveConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeLiveConfig.swift; sourceTree = "<group>"; };
+		AA100034 /* CodexLiveConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexLiveConfig.swift; sourceTree = "<group>"; };
+		AA100035 /* ProviderLinkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderLinkManager.swift; sourceTree = "<group>"; };
+		AA100036 /* AIIntegrationSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIIntegrationSettings.swift; sourceTree = "<group>"; };
+		AA100037 /* ClaudeDesktopLiveConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDesktopLiveConfig.swift; sourceTree = "<group>"; };
+		AA100038 /* AIIntegrationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIIntegrationSection.swift; sourceTree = "<group>"; };
+		AA100039 /* ClaudeRouteProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeRouteProxy.swift; sourceTree = "<group>"; };
 		BB100000 /* OmniBarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmniBarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB100001 /* OmniBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmniBarTests.swift; sourceTree = "<group>"; };
 		BB100002 /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		BB100003 /* OmnirouteAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmnirouteAPIClientTests.swift; sourceTree = "<group>"; };
+		BB100004 /* LiveConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveConfigTests.swift; sourceTree = "<group>"; };
+		BB100005 /* CodexModelCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexModelCatalogTests.swift; sourceTree = "<group>"; };
+		BB100006 /* ClaudeRouteProxyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeRouteProxyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +144,9 @@
 				BB100001 /* OmniBarTests.swift */,
 				BB100002 /* MockURLProtocol.swift */,
 				BB100003 /* OmnirouteAPIClientTests.swift */,
+				BB100004 /* LiveConfigTests.swift */,
+				BB100005 /* CodexModelCatalogTests.swift */,
+				BB100006 /* ClaudeRouteProxyTests.swift */,
 			);
 			path = OmniBarTests;
 			sourceTree = "<group>";
@@ -152,6 +181,8 @@
 				AA100010 /* ServiceStatus.swift */,
 				AA100028 /* CallLog.swift */,
 				AA100006 /* AppSettings.swift */,
+				AA100030 /* ProviderLink.swift */,
+				AA100031 /* CodexModelCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -163,8 +194,22 @@
 				AA100004 /* OmnirouteAPIClient.swift */,
 				AA100005 /* StatusItemManager.swift */,
 				AA100021 /* LaunchAtLogin.swift */,
+				AA100035 /* ProviderLinkManager.swift */,
+				AA100039 /* ClaudeRouteProxy.swift */,
+				AA200010 /* LiveConfig */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		AA200010 /* LiveConfig */ = {
+			isa = PBXGroup;
+			children = (
+				AA100032 /* AtomicWriter.swift */,
+				AA100033 /* ClaudeCodeLiveConfig.swift */,
+				AA100034 /* CodexLiveConfig.swift */,
+				AA100037 /* ClaudeDesktopLiveConfig.swift */,
+			);
+			path = LiveConfig;
 			sourceTree = "<group>";
 		};
 		AA200006 /* Views */ = {
@@ -188,6 +233,7 @@
 				AA100015 /* UsageSummary.swift */,
 				AA100027 /* DetailCards.swift */,
 				AA100029 /* Motion.swift */,
+				AA100038 /* AIIntegrationSection.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -199,6 +245,7 @@
 				AA100017 /* GeneralSettings.swift */,
 				AA100018 /* ConnectionSettings.swift */,
 				AA100019 /* AboutSettings.swift */,
+				AA100036 /* AIIntegrationSettings.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -319,6 +366,16 @@
 				AA000018 /* ConnectionSettings.swift in Sources */,
 				AA000019 /* AboutSettings.swift in Sources */,
 				AA000021 /* LaunchAtLogin.swift in Sources */,
+				AA000030 /* ProviderLink.swift in Sources */,
+				AA000031 /* CodexModelCatalog.swift in Sources */,
+				AA000032 /* AtomicWriter.swift in Sources */,
+				AA000033 /* ClaudeCodeLiveConfig.swift in Sources */,
+				AA000034 /* CodexLiveConfig.swift in Sources */,
+				AA000037 /* ClaudeDesktopLiveConfig.swift in Sources */,
+				AA000035 /* ProviderLinkManager.swift in Sources */,
+				AA000036 /* AIIntegrationSettings.swift in Sources */,
+				AA000038 /* AIIntegrationSection.swift in Sources */,
+				AA000039 /* ClaudeRouteProxy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,6 +386,9 @@
 				BB000001 /* OmniBarTests.swift in Sources */,
 				BB000002 /* MockURLProtocol.swift in Sources */,
 				BB000003 /* OmnirouteAPIClientTests.swift in Sources */,
+				BB000004 /* LiveConfigTests.swift in Sources */,
+				BB000005 /* CodexModelCatalogTests.swift in Sources */,
+				BB000006 /* ClaudeRouteProxyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -422,7 +482,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.omnibar.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -449,7 +509,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.omnibar.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

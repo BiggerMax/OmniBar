@@ -203,6 +203,22 @@ private struct LGGlassBase: View {
 struct LiquidGlassPanelBuddy: ViewModifier {
     var cornerRadius: CGFloat
     var borderEmphasis: Double = 1.0
+    /// 只圆底部两角（设置窗口顶部贴系统标题栏时使用，避免圆角空隙）
+    var bottomCornersOnly: Bool = false
+
+    /// 面板外形：默认四角圆角；bottomCornersOnly 时顶部直角、底部圆角
+    /// （统一用 UnevenRoundedRectangle，四角同半径即等价于 RoundedRectangle）
+    private var panelShape: UnevenRoundedRectangle {
+        let top = bottomCornersOnly ? 0 : cornerRadius
+        return UnevenRoundedRectangle(
+            topLeadingRadius: top,
+            bottomLeadingRadius: cornerRadius,
+            bottomTrailingRadius: cornerRadius,
+            topTrailingRadius: top,
+            style: .continuous
+        )
+    }
+
     func body(content: Content) -> some View {
         Group {
             // 玻璃材质由 AppKit NSVisualEffectView(.popover/.menu) 提供——
@@ -210,26 +226,53 @@ struct LiquidGlassPanelBuddy: ViewModifier {
             content
                 .background(LGGlassBase())
         }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .clipShape(panelShape)
         .overlay(
             // 玻璃边缘折射：顶部高光 → 底部隐没
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [DT.Color.glassBorderTop, DT.Color.glassBorderBottom],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 1
-                )
+            panelShape.strokeBorder(
+                LinearGradient(
+                    colors: [DT.Color.glassBorderTop, DT.Color.glassBorderBottom],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ),
+                lineWidth: 1
+            )
         )
     }
 }
 
 extension View {
     /// 给任意视图套上液态玻璃面板底
-    func liquidGlassPanel(cornerRadius: CGFloat = DT.Radius.card) -> some View {
-        modifier(LiquidGlassPanelBuddy(cornerRadius: cornerRadius))
+    func liquidGlassPanel(cornerRadius: CGFloat = DT.Radius.card,
+                          bottomCornersOnly: Bool = false) -> some View {
+        modifier(LiquidGlassPanelBuddy(cornerRadius: cornerRadius,
+                                       bottomCornersOnly: bottomCornersOnly))
+    }
+}
+
+// MARK: - 品牌图标
+
+/// 品牌图标：靛蓝渐变圆角方块 + 白色仪表符号（「关于」页大图标的缩略版）
+struct BrandIcon: View {
+    var size: CGFloat = 26
+    var cornerRadius: CGFloat = 7
+    var symbolSize: CGFloat = 13
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [DT.Color.accent, DT.Color.accent.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            Image(systemName: "gauge.with.dots.needle.67percent")
+                .font(.system(size: symbolSize, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: size, height: size)
     }
 }
 

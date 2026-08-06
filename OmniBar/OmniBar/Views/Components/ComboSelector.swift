@@ -14,45 +14,85 @@ struct ComboSelector: View {
     @State private var showingMenu: Bool = false
     /// 卡片是否被悬停（与 Provider 行 hover 描边一致）
     @State private var isHovering: Bool = false
+    /// 路由策略区块是否折叠（点击标题切换）
+    @State private var isCollapsed: Bool = false
     /// 点击卡片主体 → 打开大卡片详情
     var onSelect: (Combo) -> Void = { _ in }
 
     var body: some View {
         VStack(spacing: DT.Space.l) {
-            DSectionLabel(title: "路由策略 Combo")
-                .padding(.horizontal, DT.Space.xs)
-            if service.combos.isEmpty {
-                emptyState
-            } else {
-                // 对齐 HTML：Combo 卡片用 bg-white/5(surfaceElevated) + rounded-lg，
-                // 与 Provider 行同一层级，而非 surfaceContainer 深色卡片
-                VStack(alignment: .leading, spacing: DT.Space.l) {
-                    selectorRow
-                    // 内联切换下拉（替代系统 Menu，确保在 popover 内可点击）
-                    if showingMenu {
-                        Divider().foregroundStyle(DT.Color.stroke)
-                        menuList
-                    }
-                    if let active = activeCombo, !active.models.isEmpty {
-                        modelsRow(active)
-                    }
+            sectionHeader
+            if !isCollapsed {
+                if service.combos.isEmpty {
+                    emptyState
+                } else {
+                    comboCard
                 }
-                .padding(DT.Space.l)
-                .background(
-                    RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                        .fill(DT.Color.surfaceElevated)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
-                        .strokeBorder(isHovering ? DT.Color.accent.opacity(0.28) : DT.Color.strokeVariant, lineWidth: 0.5)
-                )
-                .onHover { hovering in
-                    withAnimation(Motion.hover) { isHovering = hovering }
-                }
-                .hoverLift(scale: 1.01, glow: DT.Color.accent, radius: 6, liftDistance: 2)
-                .animation(Motion.value, value: showingMenu)
             }
         }
+    }
+
+    /// 区块标题：点击折叠/展开整个「路由策略」区域；折叠时右侧显示当前策略名
+    private var sectionHeader: some View {
+        Button {
+            if !isCollapsed { showingMenu = false }
+            withAnimation(Motion.value) { isCollapsed.toggle() }
+        } label: {
+            HStack(spacing: DT.Space.s) {
+                Text("路由策略 Combo")
+                    .font(DT.Font.sectionLabel)
+                    .foregroundStyle(DT.Color.textLabel)
+                    .textCase(.uppercase)
+                    .tracking(1.5)
+                Spacer()
+                if isCollapsed, let name = activeCombo?.name {
+                    Text(name)
+                        .font(DT.Font.micro)
+                        .foregroundStyle(DT.Color.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(DT.Color.textTertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, DT.Space.xs)
+        .help(isCollapsed ? "展开路由策略" : "折叠路由策略")
+    }
+
+    /// 组合卡片主体（当前策略行 + 内联切换列表 + 模型芯片）
+    private var comboCard: some View {
+        // 对齐 HTML：Combo 卡片用 bg-white/5(surfaceElevated) + rounded-lg，
+        // 与 Provider 行同一层级，而非 surfaceContainer 深色卡片
+        VStack(alignment: .leading, spacing: DT.Space.l) {
+            selectorRow
+            // 内联切换下拉（替代系统 Menu，确保在 popover 内可点击）
+            if showingMenu {
+                Divider().foregroundStyle(DT.Color.stroke)
+                menuList
+            }
+            if let active = activeCombo, !active.models.isEmpty {
+                modelsRow(active)
+            }
+        }
+        .padding(DT.Space.l)
+        .background(
+            RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                .fill(DT.Color.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DT.Radius.row, style: .continuous)
+                .strokeBorder(isHovering ? DT.Color.accent.opacity(0.28) : DT.Color.strokeVariant, lineWidth: 0.5)
+        )
+        .onHover { hovering in
+            withAnimation(Motion.hover) { isHovering = hovering }
+        }
+        .hoverLift(scale: 1.01, glow: DT.Color.accent, radius: 6, liftDistance: 2)
+        .animation(Motion.value, value: showingMenu)
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     private var emptyState: some View {
@@ -106,6 +146,7 @@ struct ComboSelector: View {
             }
             .buttonStyle(.plain)
             .help("切换路由策略")
+            .accessibilityLabel("切换路由策略")
         }
     }
 
