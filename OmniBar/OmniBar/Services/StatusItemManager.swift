@@ -164,9 +164,11 @@ final class StatusItemManager: NSObject {
                                    width: bottomSize.width, height: lineStep))
         image.unlockFocus()
 
-        // 防止缓存无限增长：超过 100 张时整体清空（重建成本极低）
+        // 防止缓存无限增长：超过 100 张时整体清空（重建成本极低）。
+        // keepingCapacity: false —— 同时释放字典存储与全部旧位图，
+        // 避免约 100 条 × 数 KB 的位图常驻 MALLOC_SMALL（usage 单调变化，历史 key 永不再命中）。
         if twoLineImageCache.count >= 100 {
-            twoLineImageCache.removeAll(keepingCapacity: true)
+            twoLineImageCache.removeAll(keepingCapacity: false)
         }
         twoLineImageCache[key] = image
         return image
@@ -182,9 +184,11 @@ final class StatusItemManager: NSObject {
     }
 
     private func observeService() {
-        // 每秒更新菜单栏 token 文本
+        // 每秒更新菜单栏 token 文本。
+        // Timer.scheduledTimer 在调用线程（主线程，见 AppDelegate 初始化链）的 runloop 执行，
+        // 闭包本身已在主线程，无需 Task 包装（每秒少 2 次 Task 分配）。
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.renderTitle() }
+            self?.renderTitle()
         }
         omnirouteService.$status
             .receive(on: DispatchQueue.main)

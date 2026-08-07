@@ -172,9 +172,6 @@ struct Provider: Codable, Identifiable, Hashable {
     }
 
     private static func parseISO8601(_ s: String?) -> Date? {
-        guard let s else { return nil }
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f.date(from: s) ?? ISO8601DateFormatter().date(from: s)
+        DateFormatters.parseISO8601(s)
     }
 }

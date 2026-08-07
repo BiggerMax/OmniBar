@@ -29,6 +29,10 @@ generated-images/
 # Command Code local config (taste, settings)
 .commandcode/
 
+# Reasonix local state (agent sessions, permissions, config)
+.reasonix/
+reasonix.toml
+
 # Nodeterm session state
 .nodeterm/
 

@@ -552,9 +552,7 @@ struct ProviderDetailCard: View {
     }
 
     static func formatDate(_ date: Date) -> String {
-        let out = DateFormatter()
-        out.dateFormat = "MM-dd HH:mm"
-        return out.string(from: date)
+        DateFormatters.monthDayTimeString(from: date)
     }
 }
 

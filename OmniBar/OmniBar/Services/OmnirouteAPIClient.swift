@@ -42,7 +42,9 @@ final class OmnirouteAPIClient {
     }
 
     convenience init(settings: AppSettings) {
-        let config = URLSessionConfiguration.default
+        // 本地 API 轮询需要实时数据，且默认配置会挂载进程级 URLCache.shared（内存+磁盘常驻数 MB）。
+        // 用 ephemeral 完全禁用缓存：语义更正确（每次拉最新），也避免轮询响应滞留内存。
+        let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 5
         config.timeoutIntervalForResource = 10
         self.init(settings: settings, session: URLSession(configuration: config))

@@ -8,6 +8,65 @@
 
 import Foundation
 
+/// 线程安全的日期格式化工具。
+/// DateFormatter / ISO8601DateFormatter 实例化成本高（每次数 KB 级分配）且非线程安全；
+/// 轮询解码每 15s 解码一批、列表渲染每帧调用，反复新建会推高 MALLOC_SMALL 堆水位。
+/// 这里缓存实例并在锁内完成格式化，行为与每次新建完全一致。
+enum DateFormatters {
+    private static let lock = NSLock()
+    private static var iso8601Fractional: ISO8601DateFormatter?
+    private static var iso8601Plain: ISO8601DateFormatter?
+    private static var hhmmss: DateFormatter?
+    private static var monthDayTime: DateFormatter?
+
+    /// 解析 ISO8601 时间戳：优先带小数秒，失败回退不带小数秒（与旧实现一致）。
+    static func parseISO8601(_ s: String?) -> Date? {
+        guard let s else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        let fractional = iso8601Fractional ?? {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            iso8601Fractional = f
+            return f
+        }()
+        if let date = fractional.date(from: s) { return date }
+        let plain = iso8601Plain ?? {
+            let f = ISO8601DateFormatter()
+            iso8601Plain = f
+            return f
+        }()
+        return plain.date(from: s)
+    }
+
+    /// HH:mm:ss（en_US_POSIX，与旧实现一致）
+    static func hhmmssString(from date: Date) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        let f = hhmmss ?? {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm:ss"
+            f.locale = Locale(identifier: "en_US_POSIX")
+            hhmmss = f
+            return f
+        }()
+        return f.string(from: date)
+    }
+
+    /// MM-dd HH:mm
+    static func monthDayTimeString(from date: Date) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        let f = monthDayTime ?? {
+            let f = DateFormatter()
+            f.dateFormat = "MM-dd HH:mm"
+            monthDayTime = f
+            return f
+        }()
+        return f.string(from: date)
+    }
+}
+
 /// 一次 LLM 调用记录（call-log）
 struct CallLog: Codable, Identifiable, Equatable {
     var id: String
@@ -69,10 +128,7 @@ struct CallLog: Codable, Identifiable, Equatable {
     /// 时间文本（HH:mm:ss）
     var timeText: String {
         guard let timestamp else { return "" }
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm:ss"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: timestamp)
+        return DateFormatters.hhmmssString(from: timestamp)
     }
 
     /// 是否属于「连接健康测试」等非真实模型调用（用于列表过滤）
@@ -119,9 +175,6 @@ struct CallLog: Codable, Identifiable, Equatable {
     }
 
     private static func parseISO8601(_ s: String?) -> Date? {
-        guard let s else { return nil }
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f.date(from: s) ?? ISO8601DateFormatter().date(from: s)
+        DateFormatters.parseISO8601(s)
     }
 }

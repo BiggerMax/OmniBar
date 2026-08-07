@@ -33,7 +33,7 @@ final class OmnirouteService: ObservableObject {
     @Published private(set) var pid: Int? = nil
     @Published private(set) var port: Int
     @Published private(set) var version: String = "—"
-    @Published private(set) var uptime: TimeInterval = 0
+    // UPTIME 由 StatusCard 的 TimelineView 依据 startedAt 实时计算，无需存储属性
     @Published private(set) var startedAt: Date? = nil
 
     // MARK: 版本与更新
@@ -96,7 +96,6 @@ final class OmnirouteService: ObservableObject {
     private let api: OmnirouteAPIClient
     private let settings: AppSettings
     private var pollTask: Task<Void, Never>?
-    private var uptimeTimer: Timer?
     /// 由本 App 拉起的 omniroute 进程（用于退出时清理引用）
     private var launchedTask: Process?
 
@@ -162,26 +161,11 @@ final class OmnirouteService: ObservableObject {
                 try? await Task.sleep(nanoseconds: UInt64(max(5, min(60, self.settings.pollIntervalSeconds))) * 1_000_000_000)
             }
         }
-        startUptimeTimer()
     }
 
     func stopPolling() {
         pollTask?.cancel()
         pollTask = nil
-        uptimeTimer?.invalidate()
-        uptimeTimer = nil
-    }
-
-    private func startUptimeTimer() {
-        uptimeTimer?.invalidate()
-        uptimeTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self else { return }
-                if let started = self.startedAt, self.status == .running {
-                    self.uptime = Date().timeIntervalSince(started)
-                }
-            }
-        }
     }
 
     // MARK: - Refresh
@@ -193,7 +177,6 @@ final class OmnirouteService: ObservableObject {
             status = .stopped
             pid = nil
             startedAt = nil
-            uptime = 0
             providers = []
             combos = []
             latestCall = nil
@@ -454,7 +437,6 @@ final class OmnirouteService: ObservableObject {
             status = .stopped
             pid = nil
             startedAt = nil
-            uptime = 0
             return true
         }
         // 收集整条进程链：[监听端口的 server, supervisor(node wrapper), ...]
@@ -497,14 +479,12 @@ final class OmnirouteService: ObservableObject {
             status = .stopped
             pid = nil
             startedAt = nil
-            uptime = 0
         }
         // LaunchAgent 已成功卸载但进程还在（理论上极罕见），再补一轮
         if status == .running, agentUnloaded {
             status = .stopped
             pid = nil
             startedAt = nil
-            uptime = 0
         }
         return status == .stopped
     }

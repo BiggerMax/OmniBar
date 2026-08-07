@@ -140,9 +140,19 @@ struct StatusCard: View {
         HStack(spacing: DT.Space.l) {
             metric(label: "PORT", value: "\(service.port)")
             metric(label: "PID", value: service.pid.map(String.init) ?? "—")
-            metric(label: "UPTIME", value: formatUptime(service.uptime), accent: true)
+            // UPTIME 用 TimelineView 每秒局部刷新，只重建这一格：
+            // 避免 service.uptime 作为 @Published 每秒触发 PopoverPanel 整棵树重算。
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                metric(label: "UPTIME", value: uptimeText(at: context.date), accent: true)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// 由 startedAt 实时计算运行时长；服务未运行时显示 "00:00"（与旧 uptime=0 行为一致）
+    private func uptimeText(at now: Date) -> String {
+        guard let started = service.startedAt, service.status == .running else { return "00:00" }
+        return formatUptime(now.timeIntervalSince(started))
     }
 
     private func metric(label: String, value: String, accent: Bool = false) -> some View {
